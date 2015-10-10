@@ -1,8 +1,9 @@
-ActionableAgile™ Analytics Tool JIRA Extract Utility
-====================================================
+JIRA Cycle Data extract utility
+===============================
 
 This utility helps extract data from JIRA for processing with the
-ActionableAgile™ Analytics tool (https://www.actionableagile.com/analytics-tools/).
+ActionableAgile™ Analytics tool (https://www.actionableagile.com/analytics-tools/),
+as well as ad-hoc analysis using Excel.
 
 It will produce a CSV file with one row for each JIRA issue matching a set of
 filter criteria, containing basic information about the issue as well as the
@@ -13,6 +14,8 @@ scatterplot, a cycle time histogram, and other analytics based on cycle time.
 
 Installation
 ------------
+
+Install Python 2.7 and pip. See http://pip.readthedocs.org/en/stable/installing/.
 
 Install using `pip`::
 
