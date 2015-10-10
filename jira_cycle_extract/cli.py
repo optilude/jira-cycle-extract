@@ -10,8 +10,8 @@ parser.add_argument('config', metavar='config.yml', help='Configuration file')
 parser.add_argument('output', metavar='data.csv', help='Output file')
 parser.add_argument('-v', dest='verbose', action='store_const', const=True, default=False, help='Verbose output')
 parser.add_argument('-n', metavar='N', dest='max_results', type=int, help='Only fetch N most recent issues')
-parser.add_argument('--cfd', metavar='cfd.csv', dest='cfd', help='Also calculate Cumulative Flow Diagram values and write to CSV')
-parser.add_argument('--percentiles', metavar='percentiles.csv', dest='percentiles', help='Also calculate cycle time percentile values and write to CSV')
+parser.add_argument('--cfd', metavar='cfd.csv', dest='cfd', help='Also calculate Cumulative Flow Diagram values and write to CSV (Experimental!)')
+parser.add_argument('--percentiles', metavar='percentiles.csv', dest='percentiles', help='Also calculate cycle time percentile values and write to CSV (Experimental!)')
 
 def get_jira_client(connection):
     url = connection['domain']

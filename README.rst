@@ -103,3 +103,5 @@ Run the binary with::
 
 This will extract a CSV file called `data.csv` with cycle data based on the
 configuration in `config.yaml`.
+
+Use the `-v` option to print more information during the extract process.

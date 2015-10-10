@@ -111,6 +111,8 @@ class CycleTimeQueries(QueryManager):
             for snapshot in self.iter_changes(issue, False):
                 cycle_step = self.settings['cycle_lookup'].get(snapshot.status.lower(), None)
                 if cycle_step is None:
+                    if verbose:
+                        print issue.key, "transitioned to unknown JIRA status", snapshot.status
                     continue
 
                 item[cycle_step['name']] = snapshot.date
