@@ -1,4 +1,4 @@
-from query import QueryManager
+from .query import QueryManager
 import pandas as pd
 import numpy as np
 
@@ -56,7 +56,7 @@ class CycleTimeQueries(QueryManager):
         settings['cycle_lookup'] = {}
         for idx, cycle_step in enumerate(settings['cycle']):
             for status in cycle_step['statuses']:
-                settings['cycle_lookup'][status] = dict(
+                settings['cycle_lookup'][status.lower()] = dict(
                     index=idx,
                     name=cycle_step['name'],
                     type=cycle_step['type'],
@@ -64,10 +64,11 @@ class CycleTimeQueries(QueryManager):
 
         super(CycleTimeQueries, self).__init__(jira, **settings)
 
-    def cycle_data(self):
-        """Build a numberically indexed data frame with the following 'fixed'
-        columns: `key`, 'url', 'issue_type', `summary`, `status`, `resolution`,
-        `size`, `release`, and `rank` from JIRA.
+    def cycle_data(self, verbose=False):
+        """Build a numerically indexed data frame with the following 'fixed'
+        columns: `key`, 'url', 'issue_type', `summary`, `status`, and
+        `resolution` from JIRA, as well as the value of any fields set in
+        the `fields` dict in `settings`.
 
         In addition, `cycle_time` will be set to the time delta between the
         first `accepted`-type column and the first `complete` column, or None.
@@ -87,11 +88,7 @@ class CycleTimeQueries(QueryManager):
         accepted_steps = set(s['name'] for s in self.settings['cycle'] if s['type'] == StatusTypes.accepted)
         completed_steps = set(s['name'] for s in self.settings['cycle'] if s['type'] == StatusTypes.complete)
 
-        for issue in self.find_issues():
-            size = getattr(issue.fields, self.fields['size'], None)
-            release = getattr(issue.fields, self.fields['release'], None)
-            rank = getattr(issue.fields, self.fields['rank'], None)
-            team = getattr(issue.fields, self.fields['team'], None)
+        for issue in self.find_issues(order='updatedDate DESC', verbose=verbose):
 
             item = {
                 'key': issue.key,
@@ -100,20 +97,19 @@ class CycleTimeQueries(QueryManager):
                 'summary': issue.fields.summary,
                 'status': issue.fields.status.name,
                 'resolution': issue.fields.resolution.name if issue.fields.resolution else None,
-                'size': size.value if size else None,
-                'release': release[0].name if release else None,
-                'team': team.value if team else None,
-                'rank': rank,
                 'cycle_time': None,
                 'completed_timestamp': None
             }
+
+            for name, field_name in self.fields.items():
+                item[name] = self.resolve_field_value(issue, field_name)
 
             for cycle_name in cycle_names:
                 item[cycle_name] = None
 
             # Record date of status changes
             for snapshot in self.iter_changes(issue, False):
-                cycle_step = self.settings['cycle_lookup'].get(snapshot.status, None)
+                cycle_step = self.settings['cycle_lookup'].get(snapshot.status.lower(), None)
                 if cycle_step is None:
                     continue
 
@@ -147,8 +143,12 @@ class CycleTimeQueries(QueryManager):
 
             data.append(item)
 
-        return pd.DataFrame(data, columns=['key', 'url', 'issue_type', 'summary', 'status', 'resolution', 'size',
-                                          'team', 'release', 'rank', 'cycle_time', 'completed_timestamp'] + cycle_names)
+        return pd.DataFrame(data,
+            columns=['key', 'url', 'issue_type', 'summary', 'status', 'resolution'] +
+                    sorted(self.fields.keys()) +
+                    ['cycle_time', 'completed_timestamp'] +
+                    cycle_names
+        )
 
     def cfd(self, cycle_data):
         """Return the data to build a cumulative flow diagram: a DataFrame,
