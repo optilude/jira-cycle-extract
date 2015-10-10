@@ -19,12 +19,12 @@ Install Python 2.7 and pip. See http://pip.readthedocs.org/en/stable/installing/
 
 Install using `pip`::
 
-    $ pip install actionable-agile-extract
+    $ pip install jira-cycle-extract
 
 If you get errors, try to install `numpy` and `pandas` separately first::
 
     $ pip install numpy pandas
-    $ pip install actionable-agile-extract
+    $ pip install jira-cycle-extract
 
 Configuration
 -------------

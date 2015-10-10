@@ -9,8 +9,8 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='actionable-agile-extract',
-    version='0.1',
+    name='jira-cycle-extract',
+    version='0.2',
     description='Extract cycle time analytics data from JIRA',
     long_description=long_description,
     author='Martin Aspeli',
