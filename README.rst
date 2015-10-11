@@ -134,11 +134,11 @@ Use the `-v` option to print more information during the extract process.
 
 Use the `-n` option to limit the number of items fetched from JIRA, based on
 the most recently updated issues. This is useful for testing the Configuration
-without waiting for long downloads:
+without waiting for long downloads::
 
     $ jira-cycle-extract -v -n 10 config.yaml data.csv
 
-To produce Cumulative Flow Diagram statistics, use the `--cfd` option:
+To produce Cumulative Flow Diagram statistics, use the `--cfd` option::
 
     $ jira-cycle-extract --cfd cfd.csv config.yaml data.csv
 
@@ -148,7 +148,7 @@ on that day. To plot a CFD, chart this data as a (non-stacked) area chart. You
 should technically exclude the series in the first column if it represents the
 backlog!
 
-To produce cycle time scatter plot statistics, use the `--scatterplot` option:
+To produce cycle time scatter plot statistics, use the `--scatterplot` option::
 
     $ jira-cycle-extract --scatterplot scatterplot.csv config.yaml data.csv
 
@@ -162,7 +162,7 @@ contain the dates of entry into each workflow state and the various issue
 metadata to allow further filtering.
 
 To be able to easily draw a histogram of the cycle time values, use the
-`--histogram` option:
+`--histogram` option::
 
     $ jira-cycle-extract --histogram histogram.csv config.yaml data.csv
 
@@ -171,7 +171,7 @@ number of items with cycle times falling within each bin. These can be charted
 as a column or bar chart.
 
 To find out the 30th, 50th, 70th, 85th and 95th percentile cycle time values,
-pass the --percentiles option:
+pass the --percentiles option::
 
     $ jira-cycle-extract --scatterplot scatterplot.csv --percentiles config.yaml data.csv
 
