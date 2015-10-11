@@ -83,10 +83,26 @@ class CycleTimeQueries(QueryManager):
         stamps in the cycle are erased.
         """
 
-        data = []
         cycle_names = [s['name'] for s in self.settings['cycle']]
         accepted_steps = set(s['name'] for s in self.settings['cycle'] if s['type'] == StatusTypes.accepted)
         completed_steps = set(s['name'] for s in self.settings['cycle'] if s['type'] == StatusTypes.complete)
+
+        series = {
+            'key': {'data': [], 'dtype': 'string'},
+            'url': {'data': [], 'dtype': 'string'},
+            'issue_type': {'data': [], 'dtype': 'string'},
+            'summary': {'data': [], 'dtype': 'string'},
+            'status': {'data': [], 'dtype': 'string'},
+            'resolution': {'data': [], 'dtype': 'string'},
+            'cycle_time': {'data': [], 'dtype': 'timedelta64[ns]'},
+            'completed_timestamp': {'data': [], 'dtype': 'datetime64[ns]'}
+        }
+
+        for cycle_name in cycle_names:
+            series[cycle_name] = {'data': [], 'dtype': 'datetime64[ns]'}
+
+        for name in self.fields.keys():
+            series[name] = {'data': [], 'dtype': 'object'}
 
         for issue in self.find_issues(order='updatedDate DESC', verbose=verbose):
 
@@ -143,7 +159,12 @@ class CycleTimeQueries(QueryManager):
                 item['cycle_time'] = completed_timestamp - accepted_timestamp
                 item['completed_timestamp'] = completed_timestamp
 
-            data.append(item)
+            for k, v in item.items():
+                series[k]['data'].append(v)
+
+        data = {}
+        for k, v in series.items():
+            data[k] = pd.Series(v['data'], dtype=v['dtype'])
 
         return pd.DataFrame(data,
             columns=['key', 'url', 'issue_type', 'summary', 'status', 'resolution'] +
@@ -163,8 +184,6 @@ class CycleTimeQueries(QueryManager):
         """
 
         cycle_names = [s['name'] for s in self.settings['cycle']]
-        cycle_start = next(s['name'] for s in self.settings['cycle'] if s['type'] == StatusTypes.accepted)
-        cycle_end = next(s['name'] for s in self.settings['cycle'] if s['type'] == StatusTypes.complete)
 
         # Build a dataframe of just the "date" columns
         df = cycle_data[cycle_names]
@@ -176,8 +195,8 @@ class CycleTimeQueries(QueryManager):
             index=df.index
         )
 
-        # Count number of times each date occurs
-        df = pd.concat({col: df[col].value_counts() for col in df}, axis=1)
+        # Count number of times each date occurs, preserving column order
+        df = pd.concat({col: df[col].value_counts() for col in df}, axis=1)[cycle_names]
 
         # Fill missing dates with 0 and run a cumulative sum
         df = df.fillna(0).cumsum(axis=0)
@@ -186,9 +205,6 @@ class CycleTimeQueries(QueryManager):
         start, end = df.index.min(), df.index.max()
         df = df.reindex(pd.date_range(start, end, freq='D'), method='ffill')
 
-        # Calculate the approximate average cycle time
-        df['cycle_time'] = df[cycle_end] - df[cycle_start]
-
         return df
 
 
@@ -196,25 +212,42 @@ class CycleTimeQueries(QueryManager):
         """Return histogram data for the cycle times in `cycle_data`. Returns
         a dictionary with keys `bin_values` and `bin_edges` of numpy arrays
         """
-        hist = np.histogram(cycle_data['cycle_time'].astype('timedelta64[D]').dropna(), bins=bins)
-        return {
-            'bin_values': hist[0],
-            'bin_edges': hist[1]
-        }
+        values, edges = np.histogram(cycle_data['cycle_time'].astype('timedelta64[D]').dropna(), bins=bins)
 
-    def scatterplot(self, cycle_data, percentiles=(0.3, 0.5, 0.7, 0.85, 0.95,)):
-        """Return scatterplot data for the cycle times in `cycle_data`.
-        Return a dictionary with keys `series` (a list of dicts with keys
-        `x`, `y` and the fields from each record in `cycle_data`) and
-        `percentiles` (a series with percentile values as keys).
+        index = []
+        for i, v in enumerate(edges):
+            if i == 0:
+                continue
+            index.append("%.01f to %.01f" % (edges[i - 1], edges[i],))
+
+        return pd.Series(values, name="Items", index=index)
+
+    def scatterplot(self, cycle_data):
+        """Return scatterplot data for the cycle times in `cycle_data`. Returns
+        a data frame containing only those items in `cycle_data` where values
+        are set for `completed_timestamp` and `cycle_time`, and with those two
+        columns as the first two, both normalised to whole days, and with
+        `completed_timestamp` renamed to `completed_date`.
         """
 
-        data = cycle_data.dropna(subset=['cycle_time', 'completed_timestamp']) \
-                         .rename(columns={'cycle_time': 'y', 'completed_timestamp': 'x'})
+        columns = list(cycle_data.columns)
+        columns.remove('cycle_time')
+        columns.remove('completed_timestamp')
+        columns = ['completed_timestamp', 'cycle_time'] + columns
 
-        data['y'] = data['y'].astype('timedelta64[D]')
+        data = (
+            cycle_data[columns]
+            .dropna(subset=['cycle_time', 'completed_timestamp'])
+            .rename(columns={'completed_timestamp': 'completed_date'})
+        )
 
-        return {
-            'series': data.to_dict('records'),
-            'percentiles': data['y'].quantile(percentiles)
-        }
+        data['cycle_time'] = data['cycle_time'].astype('timedelta64[D]')
+        data['completed_date'] = data['completed_date'].map(pd.Timestamp.date)
+
+        return data
+
+    def percentiles(self, cycle_data, percentiles=(0.3, 0.5, 0.7, 0.85, 0.95,)):
+        """Return percentiles for `cycle_time` in cycle data as a DataFrame
+        """
+
+        return cycle_data['cycle_time'].dropna().quantile(percentiles)
