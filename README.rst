@@ -197,6 +197,9 @@ Troubleshooting
 Changelog
 ---------
 
+0.4 - October 31 2015
+    * Fix encoding errors when summary contains non-ASCII characters
+
 0.3 - October 11 2015
     * Add proper support for `--cfd`, `--scatterplot`, `--percentiles` and
       `--histogram`

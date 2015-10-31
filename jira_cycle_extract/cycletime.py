@@ -110,7 +110,7 @@ class CycleTimeQueries(QueryManager):
                 'key': issue.key,
                 'url': "%s/browse/%s" % (self.jira._options['server'], issue.key,),
                 'issue_type': issue.fields.issuetype.name,
-                'summary': issue.fields.summary,
+                'summary': issue.fields.summary.encode('utf-8'),
                 'status': issue.fields.status.name,
                 'resolution': issue.fields.resolution.name if issue.fields.resolution else None,
                 'cycle_time': None,
