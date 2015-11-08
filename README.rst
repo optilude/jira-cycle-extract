@@ -197,6 +197,13 @@ Troubleshooting
 Changelog
 ---------
 
+0.5 - November 8 2015
+    * When an issues moves between two JIRA states that are mapped to the same
+      workflow step, record the *earliest* date, not the most recent
+    * When an issue moves backwards in the flow as defined by the sequence of
+      workflow steps, retain the *earliest* date the issue entered the given
+      step (and erase any dates recorded for all subsequent steps)
+
 0.4 - October 31 2015
     * Fix encoding errors when summary contains non-ASCII characters
 

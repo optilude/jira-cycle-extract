@@ -125,13 +125,28 @@ class CycleTimeQueries(QueryManager):
 
             # Record date of status changes
             for snapshot in self.iter_changes(issue, False):
-                cycle_step = self.settings['cycle_lookup'].get(snapshot.status.lower(), None)
-                if cycle_step is None:
+                snapshot_cycle_step = self.settings['cycle_lookup'].get(snapshot.status.lower(), None)
+                if snapshot_cycle_step is None:
                     if verbose:
                         print issue.key, "transitioned to unknown JIRA status", snapshot.status
                     continue
 
-                item[cycle_step['name']] = snapshot.date
+                snapshot_cycle_step_name = snapshot_cycle_step['name']
+
+                # Keep the first time we entered a step
+                if item[snapshot_cycle_step_name] is None:
+                    item[snapshot_cycle_step_name] = snapshot.date
+
+                # Wipe any subsequent dates, in case this was a move backwards
+                found_cycle_name = False
+                for cycle_name in cycle_names:
+                    if not found_cycle_name and cycle_name == snapshot_cycle_step_name:
+                        found_cycle_name = True
+                        continue
+                    elif found_cycle_name and item[cycle_name] is not None:
+                        if verbose:
+                            print issue.key, "moved backwards to", snapshot_cycle_step_name, "wiping date for subsequent step", cycle_name
+                        item[cycle_name] = None
 
             # Wipe timestamps if items have moved backwards; calculate cycle time
 
@@ -140,13 +155,6 @@ class CycleTimeQueries(QueryManager):
             completed_timestamp = None
 
             for cycle_name in cycle_names:
-                if (
-                    item[cycle_name] is not None and
-                    previous_timestamp is not None and
-                    item[cycle_name] < previous_timestamp
-                ):
-                    item[cycle_name] = None
-
                 if item[cycle_name] is not None:
                     previous_timestamp = item[cycle_name]
 
