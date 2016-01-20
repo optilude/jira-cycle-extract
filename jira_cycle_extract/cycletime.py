@@ -68,7 +68,14 @@ class CycleTimeQueries(QueryManager):
         """Build a numerically indexed data frame with the following 'fixed'
         columns: `key`, 'url', 'issue_type', `summary`, `status`, and
         `resolution` from JIRA, as well as the value of any fields set in
-        the `fields` dict in `settings`.
+        the `fields` dict in `settings`. If `known_values` is set (a dict of
+        lists, with field names as keys and a list of known values for each
+        field as values) and a field in `fields` contains a list of values,
+        only the first value in the list of known values will be used.
+
+        If 'query_attribute' is set in `settings`, a column with this name
+        will be added, and populated with the `value` key, if any, from each
+        criteria block under `queries` in settings.
 
         In addition, `cycle_time` will be set to the time delta between the
         first `accepted`-type column and the first `complete` column, or None.
@@ -104,71 +111,78 @@ class CycleTimeQueries(QueryManager):
         for name in self.fields.keys():
             series[name] = {'data': [], 'dtype': 'object'}
 
-        for issue in self.find_issues(order='updatedDate DESC', verbose=verbose):
+        if self.settings['query_attribute']:
+            series[self.settings['query_attribute']] = {'data': [], 'dtype': 'string'}
 
-            item = {
-                'key': issue.key,
-                'url': "%s/browse/%s" % (self.jira._options['server'], issue.key,),
-                'issue_type': issue.fields.issuetype.name,
-                'summary': issue.fields.summary.encode('utf-8'),
-                'status': issue.fields.status.name,
-                'resolution': issue.fields.resolution.name if issue.fields.resolution else None,
-                'cycle_time': None,
-                'completed_timestamp': None
-            }
+        for criteria in self.settings['queries']:
+            for issue in self.find_issues(criteria, order='updatedDate DESC', verbose=verbose):
 
-            for name, field_name in self.fields.items():
-                item[name] = self.resolve_field_value(issue, field_name)
+                item = {
+                    'key': issue.key,
+                    'url': "%s/browse/%s" % (self.jira._options['server'], issue.key,),
+                    'issue_type': issue.fields.issuetype.name,
+                    'summary': issue.fields.summary.encode('utf-8'),
+                    'status': issue.fields.status.name,
+                    'resolution': issue.fields.resolution.name if issue.fields.resolution else None,
+                    'cycle_time': None,
+                    'completed_timestamp': None
+                }
 
-            for cycle_name in cycle_names:
-                item[cycle_name] = None
+                for name, field_name in self.fields.items():
+                    item[name] = self.resolve_field_value(issue, name, field_name)
 
-            # Record date of status changes
-            for snapshot in self.iter_changes(issue, False):
-                snapshot_cycle_step = self.settings['cycle_lookup'].get(snapshot.status.lower(), None)
-                if snapshot_cycle_step is None:
-                    if verbose:
-                        print issue.key, "transitioned to unknown JIRA status", snapshot.status
-                    continue
+                if self.settings['query_attribute']:
+                    item[self.settings['query_attribute']] = criteria.get('value', None)
 
-                snapshot_cycle_step_name = snapshot_cycle_step['name']
-
-                # Keep the first time we entered a step
-                if item[snapshot_cycle_step_name] is None:
-                    item[snapshot_cycle_step_name] = snapshot.date
-
-                # Wipe any subsequent dates, in case this was a move backwards
-                found_cycle_name = False
                 for cycle_name in cycle_names:
-                    if not found_cycle_name and cycle_name == snapshot_cycle_step_name:
-                        found_cycle_name = True
-                        continue
-                    elif found_cycle_name and item[cycle_name] is not None:
+                    item[cycle_name] = None
+
+                # Record date of status changes
+                for snapshot in self.iter_changes(issue, False):
+                    snapshot_cycle_step = self.settings['cycle_lookup'].get(snapshot.status.lower(), None)
+                    if snapshot_cycle_step is None:
                         if verbose:
-                            print issue.key, "moved backwards to", snapshot_cycle_step_name, "wiping date for subsequent step", cycle_name
-                        item[cycle_name] = None
+                            print issue.key, "transitioned to unknown JIRA status", snapshot.status
+                        continue
 
-            # Wipe timestamps if items have moved backwards; calculate cycle time
+                    snapshot_cycle_step_name = snapshot_cycle_step['name']
 
-            previous_timestamp = None
-            accepted_timestamp = None
-            completed_timestamp = None
+                    # Keep the first time we entered a step
+                    if item[snapshot_cycle_step_name] is None:
+                        item[snapshot_cycle_step_name] = snapshot.date
 
-            for cycle_name in cycle_names:
-                if item[cycle_name] is not None:
-                    previous_timestamp = item[cycle_name]
+                    # Wipe any subsequent dates, in case this was a move backwards
+                    found_cycle_name = False
+                    for cycle_name in cycle_names:
+                        if not found_cycle_name and cycle_name == snapshot_cycle_step_name:
+                            found_cycle_name = True
+                            continue
+                        elif found_cycle_name and item[cycle_name] is not None:
+                            if verbose:
+                                print issue.key, "moved backwards to", snapshot_cycle_step_name, "wiping date for subsequent step", cycle_name
+                            item[cycle_name] = None
 
-                    if accepted_timestamp is None and previous_timestamp is not None and cycle_name in accepted_steps:
-                        accepted_timestamp = previous_timestamp
-                    if completed_timestamp is None and previous_timestamp is not None and cycle_name in completed_steps:
-                        completed_timestamp = previous_timestamp
+                # Wipe timestamps if items have moved backwards; calculate cycle time
 
-            if accepted_timestamp is not None and completed_timestamp is not None:
-                item['cycle_time'] = completed_timestamp - accepted_timestamp
-                item['completed_timestamp'] = completed_timestamp
+                previous_timestamp = None
+                accepted_timestamp = None
+                completed_timestamp = None
 
-            for k, v in item.items():
-                series[k]['data'].append(v)
+                for cycle_name in cycle_names:
+                    if item[cycle_name] is not None:
+                        previous_timestamp = item[cycle_name]
+
+                        if accepted_timestamp is None and previous_timestamp is not None and cycle_name in accepted_steps:
+                            accepted_timestamp = previous_timestamp
+                        if completed_timestamp is None and previous_timestamp is not None and cycle_name in completed_steps:
+                            completed_timestamp = previous_timestamp
+
+                if accepted_timestamp is not None and completed_timestamp is not None:
+                    item['cycle_time'] = completed_timestamp - accepted_timestamp
+                    item['completed_timestamp'] = completed_timestamp
+
+                for k, v in item.items():
+                    series[k]['data'].append(v)
 
         data = {}
         for k, v in series.items():
@@ -177,6 +191,7 @@ class CycleTimeQueries(QueryManager):
         return pd.DataFrame(data,
             columns=['key', 'url', 'issue_type', 'summary', 'status', 'resolution'] +
                     sorted(self.fields.keys()) +
+                    ([self.settings['query_attribute']] if self.settings['query_attribute'] else []) +
                     ['cycle_time', 'completed_timestamp'] +
                     cycle_names
         )

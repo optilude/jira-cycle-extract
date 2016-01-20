@@ -39,15 +39,11 @@ class QueryManager(object):
     """
 
     settings = dict(
-        project=None,
-
-        issue_types=['Story'],
-        valid_resolutions=["Done", "Wontfix"],
-        jql_filter=None,
-
-        fields={},  # map custom name to JIRA field id
-
-        max_results=False,  # set to a number to bound; False means fetch all in batches of 50
+        queries=[],
+        query_attribute=None,
+        fields={},
+        known_values={},
+        max_results=False,
     )
 
     fields = {}  # resolved at runtime to JIRA fields
@@ -71,7 +67,7 @@ class QueryManager(object):
             except StopIteration:
                 raise Exception("JIRA field with name `%s` does not exist (did you try to use the field id instead?)" % field)
 
-    def resolve_field_value(self, issue, field_name):
+    def resolve_field_value(self, issue, name, field_name):
         field_value = getattr(issue.fields, field_name)
 
         if field_value is None:
@@ -83,7 +79,14 @@ class QueryManager(object):
             if len(value) == 0:
                 value = None
             else:
-                value = getattr(value[0], 'name', value[0])
+                values = [getattr(v, 'name', v) for v in value]
+                if name not in self.settings['known_values']:
+                    value = values[0]
+                else:
+                    try:
+                        value = next(itertools.ifilter(lambda v: v in values, self.settings['known_values'][name]))
+                    except StopIteration:
+                        value = None
 
         return value
 
@@ -144,28 +147,28 @@ class QueryManager(object):
 
     # Basic queries
 
-    def find_issues(self, jql=None, order='KEY ASC', verbose=False):
+    def find_issues(self, criteria={}, jql=None, order='KEY ASC', verbose=False):
         """Return a list of issues with changelog metadata.
 
-        Searches for the `issue_types`, `project` and `valid_resolutions`
-        set in the settings for the query manager.
+        Searches for the `issue_types`, `project`, `valid_resolutions` and
+        'jql_filter' set in the passed-in `criteria` object.
 
         Pass a JQL string to further qualify the query results.
         """
 
         query = []
 
-        if self.settings['issue_types']:
-            query.append('issueType IN (%s)' % ', '.join(['"%s"' % t for t in self.settings['issue_types']]))
+        if criteria.get('project', False):
+            query.append('project = %s' % criteria['project'])
 
-        if self.settings['valid_resolutions']:
-            query.append('(resolution IS EMPTY OR resolution IN (%s))' % ', '.join(['"%s"' % r for r in self.settings['valid_resolutions']]))
+        if criteria.get('issue_types', False):
+            query.append('issueType IN (%s)' % ', '.join(['"%s"' % t for t in criteria['issue_types']]))
 
-        if self.settings['project']:
-            query.append('project = %s' % self.settings['project'])
+        if criteria.get('valid_resolutions', False):
+            query.append('(resolution IS EMPTY OR resolution IN (%s))' % ', '.join(['"%s"' % r for r in criteria['valid_resolutions']]))
 
-        if self.settings['jql_filter'] is not None:
-            query.append('(%s)' % self.settings['jql_filter'])
+        if criteria.get('jql_filter') is not None:
+            query.append('(%s)' % criteria['jql_filter'])
 
         if jql is not None:
             query.append('(%s)' % jql)

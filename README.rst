@@ -51,7 +51,7 @@ Write a YAML configuration file like so, calling it e.g. `config.yaml`::
     # What to search for?
     Criteria:
         Project: ABC # JIRA project key to search
-        Issue types: # Which issue types to include
+        Issue types: # Which issue types to include
             - Story
             - Defect
         Valid resolutions: # Which resolution statuses to include (unresolved is always included)
@@ -59,7 +59,7 @@ Write a YAML configuration file like so, calling it e.g. `config.yaml`::
             - Closed
         JQL: labels != "Spike" # Additional filter as raw JQL, optional
 
-    # Describe the workflow. Each step can be mapped to either a single JIRA
+    # Describe the workflow. Each step can be mapped to either a single JIRA
     # status, or a list of statuses that will be treated as equivalent
     Workflow:
         Open: Open
@@ -73,7 +73,7 @@ Write a YAML configuration file like so, calling it e.g. `config.yaml`::
             - Closed
             - Done
 
-    # Map field names to additional attributes to extract
+    # Map field names to additional attributes to extract
     Attributes:
         Components: Component/s
         Priority: Priority
@@ -118,6 +118,66 @@ included.
 
 When specifying fields like `Component/s` or `Fix version/s` that may have
 lists of values, only the first value set will be used.
+
+Multiple queries
+----------------
+
+If it is difficult to construct a single set of criteria that returns all
+required issues, multiple `Criteria` sections can be wrapped into a `Queries`
+block, like so::
+
+    Queries:
+        Attribute: Team
+        Criteria:
+            - Value: Team 1
+              Project: ABC
+              Issue types:
+                  - Story
+                  - Bug
+              Valid resolutions:
+                  - Done
+                  - Closed
+              JQL: Component = "Team 1"
+
+            - Value: Team 2
+              Project: ABC
+              Issue types:
+                  - Story
+                  - Bug
+              Valid resolutions:
+                  - Done
+                  - Closed
+              JQL: Component = "Team 2"
+
+In this example, the `Component` field in JIRA is being used to signify the team
+delivering the work, but may also be used for other things. Two JIRA queries
+will be run, corresponding to the two `Criteria` blocks.
+
+In addition, a new column called `Team` will be added to the output, as
+specified by the `Attribute` field under `Queries`. For all items returned by
+the first query, the value will be `Team 1` as per the `Value` field, and for
+all items returned by the second query, it will be `Team 2`.
+
+Multi-valued fields
+-------------------
+
+Some fields in JIRA can contain multiple values, e.g. `fixVersion`. By default,
+the extractor will use the first value in such a field if one is specified in
+the `Attributes` block. However, you may want to extract only specific values.
+
+To do so, add a block like the following::
+
+    Attributes:
+        Release: Fix version/s
+
+    Known values:
+        Release:
+            - "R01"
+            - "R02"
+            - "R03"
+
+The extractor will pick the first "known value" found for the field. If none of
+the known values match, the cell will be empty.
 
 Running
 -------
@@ -196,6 +256,9 @@ Troubleshooting
 
 Changelog
 ---------
+
+0.6 - January 20 2016
+    * Add support for `Queries` and `Known values`.
 
 0.5 - November 8 2015
     * When an issues moves between two JIRA states that are mapped to the same

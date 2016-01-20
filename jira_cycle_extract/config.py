@@ -34,11 +34,10 @@ def config_to_options(data):
             'password': None
         },
         'settings': {
-            'project': None,
-            'issue_types': None,
-            'valid_resolutions': None,
-            'jql_filter': None,
+            'queries': [],
+            'query_attribute': None,
             'fields': {},
+            'known_values': {},
             'cycle': []
         }
     }
@@ -59,22 +58,30 @@ def config_to_options(data):
     if 'password' in config['connection']:
         options['connection']['password'] = config['connection']['password']
 
-    # Parse Criteria
+    # Parse Queries (list of Criteria) and/or a single Criteria
 
-    if 'criteria' not in config:
-        raise ConfigError("`Criteria` section not found")
+    if 'queries' in config:
+        options['settings']['query_attribute'] = config['queries'].get('attribute', None)
+        for query in config['queries']['criteria']:
+            options['settings']['queries'].append({
+                'value': query.get('value', None),
+                'project': query.get('project', None),
+                'issue_types': force_list(query.get('issue types', [])),
+                'valid_resolutions': force_list(query.get('valid resolutions', [])),
+                'jql_filter': query.get('jql', None)
+            })
 
-    if 'project' in config['criteria']:
-        options['settings']['project'] = config['criteria']['project']
+    if 'criteria' in config:
+        options['settings']['queries'].append({
+            'value': config['criteria'].get('value', None),
+            'project': config['criteria'].get('project', None),
+            'issue_types': force_list(config['criteria'].get('issue types', [])),
+            'valid_resolutions': force_list(config['criteria'].get('valid resolutions', [])),
+            'jql_filter': config['criteria'].get('jql', None)
+        })
 
-    if 'issue types' in config['criteria']:
-        options['settings']['issue_types'] = force_list(config['criteria']['issue types'])
-
-    if 'valid resolutions' in config['criteria']:
-        options['settings']['valid_resolutions'] = force_list(config['criteria']['valid resolutions'])
-
-    if 'jql' in config['criteria']:
-        options['settings']['jql_filter'] = config['criteria']['jql']
+    if len(options['settings']['queries']) == 0:
+        raise ConfigError("No `Criteria` or `Queries` section found")
 
     # Parse Workflow. Assume first status is backlog and last status is complete.
 
@@ -100,5 +107,9 @@ def config_to_options(data):
 
     if 'attributes' in config:
         options['settings']['fields'] = dict(config['attributes'])
+
+    if 'known values' in config:
+        for name, values in config['known values'].items():
+            options['settings']['known_values'][name] = force_list(values)
 
     return options

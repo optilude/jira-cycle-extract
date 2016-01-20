@@ -52,11 +52,12 @@ def main():
 
     cycle_names = [s['name'] for s in q.settings['cycle']]
     field_names = sorted(options['settings']['fields'].keys())
+    query_attribute_names = [q.settings['query_attribute']] if q.settings['query_attribute'] else []
 
     print "Writing cycle data to", args.output
     cycle_data.to_csv(args.output,
-        columns=['key', 'url', 'summary'] + cycle_names + ['issue_type', 'status', 'resolution'] + field_names,
-        header=['ID', 'Link', 'Name'] + cycle_names + ['Type', 'Status', 'Resolution'] + field_names,
+        columns=['key', 'url', 'summary'] + cycle_names + ['issue_type', 'status', 'resolution'] + field_names + query_attribute_names,
+        header=['ID', 'Link', 'Name'] + cycle_names + ['Type', 'Status', 'Resolution'] + field_names + query_attribute_names,
         index=False
     )
 
