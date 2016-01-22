@@ -88,6 +88,12 @@ class QueryManager(object):
                     except StopIteration:
                         value = None
 
+        if not isinstance(value, (int, float, bool, str, unicode)):
+            try:
+                value = str(value)
+            except TypeError:
+                pass
+
         return value
 
     def iter_changes(self, issue, include_resolution_changes=True):

@@ -190,6 +190,20 @@ of the YAML configuration file and the name of the output CSV file::
 This will extract a CSV file called `data.csv` with cycle data based on the
 configuration in `config.yaml`.
 
+If you prefer JSON:
+
+    $ jira-cycle-extract --format=json config.yaml data.json
+
+The JSON format can be loaded by the Actionable Agile Analytics tool if you
+self-host it and the single-page HTML file for the AAA tool and the JSON file
+are accessible from the same web server, via a URL parameter:
+
+    http://myserver/analytics.html?url=data.json
+
+You can specify a path or full URL, but due to same-origin request restrictions,
+your browser is unlikely to let you load anything not served from the same
+domain as the analytics web app itself.
+
 Use the `-v` option to print more information during the extract process.
 
 Use the `-n` option to limit the number of items fetched from JIRA, based on
@@ -256,6 +270,10 @@ Troubleshooting
 
 Changelog
 ---------
+
+0.7 - January 22 2016
+    * Add support for `--format=json`
+    * Output all dates in ISO format (YYYY-MM-DD)
 
 0.6 - January 20 2016
     * Add support for `Queries` and `Known values`.

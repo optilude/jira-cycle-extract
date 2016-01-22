@@ -10,7 +10,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='jira-cycle-extract',
-    version='0.6',
+    version='0.7',
     description='Extract cycle time analytics data from JIRA',
     long_description=long_description,
     author='Martin Aspeli',
