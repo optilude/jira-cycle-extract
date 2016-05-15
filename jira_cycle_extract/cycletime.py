@@ -218,6 +218,9 @@ class CycleTimeQueries(QueryManager):
             index=df.index
         )
 
+        # Replace missing NaT values (happens if a status is skipped) with the subsequent timestamp
+        df = df.fillna(method='bfill', axis=1)
+
         # Count number of times each date occurs, preserving column order
         df = pd.concat({col: df[col].value_counts() for col in df}, axis=1)[cycle_names]
 

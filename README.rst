@@ -271,6 +271,9 @@ Troubleshooting
 Changelog
 ---------
 
+0.8 -
+    * Fixed a bug with calculating the CFD when statuses are skipped
+
 0.7 - January 22 2016
     * Add support for `--format=json`
     * Output all dates in ISO format (YYYY-MM-DD)
