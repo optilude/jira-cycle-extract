@@ -248,6 +248,17 @@ class CycleTimeQueries(QueryManager):
 
         return pd.Series(values, name="Items", index=index)
 
+    def throughput_data(self, cycle_data, frequency='1D'):
+        """Return a data frame with columns `completed_timestamp` of the
+        given frequency, and `count`, where count is the number of items
+        completed at that timestamp (e.g. daily).
+        """
+        return cycle_data[['completed_timestamp', 'key']] \
+                        .groupby('completed_timestamp').count() \
+                        .resample(frequency).sum() \
+                        .fillna(0) \
+                        .rename(columns={'key': 'count'})
+
     def scatterplot(self, cycle_data):
         """Return scatterplot data for the cycle times in `cycle_data`. Returns
         a data frame containing only those items in `cycle_data` where values

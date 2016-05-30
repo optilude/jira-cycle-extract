@@ -15,6 +15,9 @@ scatterplot, a cycle time histogram, and other analytics based on cycle time.
 To make it easier to draw these diagrams, the tool can also be used to output
 CSV files with pre-calculated values for charting in e.g. Excel.
 
+Finally, if you have the right dependencies installed, it can output basic
+charts as images.
+
 Installation
 ------------
 
@@ -36,6 +39,15 @@ correctly installed using::
 
 If this doesn't work, check the output of `pip install jira-cycle-extract` to
 see where it may have installed the binary.
+
+To use the built-in charting capabilities, you need to install Seaborn
+(which in turn installs Matplotlib and SciPy) and Statsmodels. You can get
+these with the `charting` extra:
+
+    $ pip install jira-cycle-extract[charting]
+    
+These dependencies are not installed by default because they can sometimes
+be a bit tricky to install.
 
 Configuration
 -------------
@@ -188,7 +200,12 @@ of the YAML configuration file and the name of the output CSV file::
     $ jira-cycle-extract config.yaml data.csv
 
 This will extract a CSV file called `data.csv` with cycle data based on the
-configuration in `config.yaml`.
+configuration in `config.yaml`, in a format compatible with the
+ActionableAgile toolset.
+
+If you prefer Excel files for manual analysis:
+
+    $ jira-cycle-extract --format=xlsx config.yaml data.xlsx
 
 If you prefer JSON:
 
@@ -203,6 +220,9 @@ are accessible from the same web server, via a URL parameter:
 You can specify a path or full URL, but due to same-origin request restrictions,
 your browser is unlikely to let you load anything not served from the same
 domain as the analytics web app itself.
+
+**Note:** When the `--format` is set, it applies to all files written, not
+just the main cyle data file (see other options below).
 
 Use the `-v` option to print more information during the extract process.
 
@@ -245,11 +265,34 @@ number of items with cycle times falling within each bin. These can be charted
 as a column or bar chart.
 
 To find out the 30th, 50th, 70th, 85th and 95th percentile cycle time values,
-pass the --percentiles option::
+pass the `--percentiles` option::
 
-    $ jira-cycle-extract --scatterplot scatterplot.csv --percentiles config.yaml data.csv
+    $ jira-cycle-extract --percentiles percentiles.csv config.yaml data.csv
 
-These will be printed to the console.
+To calculate different percentiles use the `--quantiles` option:
+
+    $ jira-cycle-extract --percentiles percentiles.csv --quantiles=0.3,0.5,0.8 config.yaml data.csv
+    
+Note that there should not be spaces between the commas!
+
+To find out the daily throughput for the last 60 days, use the `--throughput` option:
+
+    $ jira-cycle-extract --throughput throughput.csv config.yaml data.csv
+
+To use a different time window, e.g. the last 90 days:
+
+    $ jira-cycle-extract --throughput throughput.csv --throughput-window=90 config.yaml data.csv    
+
+The various options can be used in combination, and it is technically OK to
+skip the second positional (`data.csv`) parameter (in which case the file will
+not be written).
+
+If you have charting dependencies installed, there are various options available
+to specify which charts to produce, for example:
+
+    $ jira-cycle-extract --charts-catterplot=scatterplot.png config.yaml data.csv
+
+See the output of `jira-cycle-extract --help` to learn the full range.
 
 Troubleshooting
 ---------------

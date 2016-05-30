@@ -25,13 +25,13 @@ setup(
         'pandas',
         'numpy',
         'python-dateutil',
-        'pydicti'
+        'pydicti',
+        'openpyxl',
     ],
-
-    # extras_require={
-    #     'dev': ['check-manifest'],
-    #     'test': ['coverage'],
-    # },
+    
+    extras_require={
+        'charting': ['seaborn', 'matplotlib', 'statsmodels'],
+    },
 
     entry_points={
         'console_scripts': [
