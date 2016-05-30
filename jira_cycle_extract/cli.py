@@ -31,9 +31,6 @@ parser.add_argument('--final-column', metavar='<name>', help="Name of the final 
 parser.add_argument('--done-column', metavar='<name>', help="Name of the 'done' column. Defaults to the last column.")
 parser.add_argument('--throughput-window', metavar='60', type=int, default=60, help="How many days in the past to use for calculating throughput")
 
-# TODO: Test charts
-# TODO: README updates
-
 if charting.HAVE_CHARTING:
 
     parser.add_argument('--charts-scatterplot', metavar='scatterplot.png', help="Draw cycle time scatter plot")
@@ -47,8 +44,12 @@ if charting.HAVE_CHARTING:
     parser.add_argument('--charts-burnup-forecast-trials', metavar='100', type=int, default=100, help="Number of iterations in Monte Carlo simulation.")
 
     parser.add_argument('--charts-wip', metavar='wip', help="Draw weekly WIP box plot")
+    parser.add_argument('--charts-wip-window', metavar='6', default=6, type=int, help="Number of weeks in the past for which to draw weekly WIP chart")
+
     parser.add_argument('--charts-ageing-wip', metavar='ageing-wip.png', help="Draw current ageing WIP chart")
+
     parser.add_argument('--charts-net-flow', metavar='net-flow.png', help="Draw weekly net flow bar chart")
+    parser.add_argument('--charts-net-flow-window', metavar='6', default=6, type=int, help="Number of weeks in the past for which to draw net flow chart")
 
 def get_jira_client(connection):
     url = connection['domain']
@@ -202,37 +203,57 @@ def main():
         if args.charts_scatterplot:
             print "Drawing scatterplot in", args.charts_scatterplot
             charting.set_style('darkgrid')
-            ax = charting.cycle_time_scatterplot(cycle_data, percentiles=quantiles)
-            fig = ax.get_figure()
-            fig.savefig(args.charts_scatterplot, bbox_inches='tight', dpi=300)
+            try:
+                ax = charting.cycle_time_scatterplot(cycle_data, percentiles=quantiles)
+            except charting.UnchartableData, e:
+                print "** WARNING: Did not draw chart:", e
+            else:
+                fig = ax.get_figure()
+                fig.savefig(args.charts_scatterplot, bbox_inches='tight', dpi=300)
 
         if args.charts_histogram:
             print "Drawing histogram in", args.charts_histogram
             charting.set_style('darkgrid')
-            ax = charting.cycle_time_histogram(cycle_data, percentiles=quantiles)
-            fig = ax.get_figure()
-            fig.savefig(args.charts_histogram, bbox_inches='tight', dpi=300)
+            try:
+                ax = charting.cycle_time_histogram(cycle_data, percentiles=quantiles)
+            except charting.UnchartableData, e:
+                print "** WARNING: Did not draw chart:", e
+            else:
+                fig = ax.get_figure()
+                fig.savefig(args.charts_histogram, bbox_inches='tight', dpi=300)
 
         if args.charts_cfd:
             print "Drawing CFD in", args.charts_cfd
             charting.set_style('whitegrid')
-            ax = charting.cfd(cfd_data)
-            fig = ax.get_figure()
-            fig.savefig(args.charts_cfd, bbox_inches='tight', dpi=300)
+            try:
+                ax = charting.cfd(cfd_data)
+            except charting.UnchartableData, e:
+                print "** WARNING: Did not draw chart:", e
+            else:
+                fig = ax.get_figure()
+                fig.savefig(args.charts_cfd, bbox_inches='tight', dpi=300)
 
         if args.charts_throughput:
             print "Drawing throughput chart in", args.charts_throughput
             charting.set_style('darkgrid')
-            ax = charting.throughput_trend_chart(daily_throughput_data)
-            fig = ax.get_figure()
-            fig.savefig(args.charts_throughput, bbox_inches='tight', dpi=300)
+            try:
+                ax = charting.throughput_trend_chart(daily_throughput_data)
+            except charting.UnchartableData, e:
+                print "** WARNING: Did not draw chart:", e
+            else:
+                fig = ax.get_figure()
+                fig.savefig(args.charts_throughput, bbox_inches='tight', dpi=300)
 
         if args.charts_burnup:
             print "Drawing burnup chart in", args.charts_burnup
             charting.set_style('whitegrid')
-            ax = charting.burnup(cfd_data, backlog_column=backlog_column, done_column=done_column)
-            fig = ax.get_figure()
-            fig.savefig(args.charts_burnup, bbox_inches='tight', dpi=300)
+            try:
+                ax = charting.burnup(cfd_data, backlog_column=backlog_column, done_column=done_column)
+            except charting.UnchartableData, e:
+                print "** WARNING: Did not draw chart:", e
+            else:
+                fig = ax.get_figure()
+                fig.savefig(args.charts_burnup, bbox_inches='tight', dpi=300)
 
         if args.charts_burnup_forecast:
             target = args.charts_burnup_forecast_target or None
@@ -240,34 +261,58 @@ def main():
 
             print "Drawing burnup foreacst chart in", args.charts_burnup_forecast
             charting.set_style('whitegrid')
-            ax = charting.burnup_forecast(
-                cfd_data, daily_throughput_data,
-                trials=trials, target=target,
-                backlog_column=backlog_column, done_column=done_column,
-                percentiles=quantiles
-            )
-            fig = ax.get_figure()
-            fig.savefig(args.charts_burnup_forecast, bbox_inches='tight', dpi=300)
+            try:
+                ax = charting.burnup_forecast(
+                    cfd_data, daily_throughput_data,
+                    trials=trials, target=target,
+                    backlog_column=backlog_column, done_column=done_column,
+                    percentiles=quantiles
+                )
+            except charting.UnchartableData, e:
+                print "** WARNING: Did not draw chart:", e
+            else:
+                fig = ax.get_figure()
+                fig.savefig(args.charts_burnup_forecast, bbox_inches='tight', dpi=300)
 
         if args.charts_wip:
             print "Drawing WIP chart in", args.charts_wip
             charting.set_style('darkgrid')
-            ax = charting.wip_chart(cfd_data, start_column=committed_column, end_column=final_column)
-            fig = ax.get_figure()
-            fig.savefig(args.charts_wip, bbox_inches='tight', dpi=300)
+            try:
+                ax = charting.wip_chart(
+                    q.cfd(cycle_data[cycle_data[backlog_column] >= (datetime.date.today() - datetime.timedelta(weeks=(args.charts_wip_window or 6)))]),
+                    start_column=committed_column,
+                    end_column=final_column
+                )
+            except charting.UnchartableData, e:
+                print "** WARNING: Did not draw chart:", e
+            else:
+                fig = ax.get_figure()
+                fig.savefig(args.charts_wip, bbox_inches='tight', dpi=300)
 
         if args.charts_ageing_wip:
             print "Drawing ageing WIP chart in", args.charts_ageing_wip
             charting.set_style('whitegrid')
-            ax = charting.ageing_wip_chart(cycle_data, start_column=committed_column, end_column=final_column, done_column=done_column)
-            fig = ax.get_figure()
-            fig.savefig(args.charts_ageing_wip, bbox_inches='tight', dpi=300)
+            try:
+                ax = charting.ageing_wip_chart(cycle_data, start_column=committed_column, end_column=final_column, done_column=done_column)
+            except charting.UnchartableData, e:
+                print "** WARNING: Did not draw chart:", e
+            else:
+                fig = ax.get_figure()
+                fig.savefig(args.charts_ageing_wip, bbox_inches='tight', dpi=300)
 
         if args.charts_net_flow:
             print "Drawing net flow chart in", args.charts_net_flow
             charting.set_style('darkgrid')
-            ax = charting.net_flow_chart(cfd_data, start_column=committed_column, end_column=done_column)
-            fig = ax.get_figure()
-            fig.savefig(args.charts_net_flow, bbox_inches='tight', dpi=300)
+            try:
+                ax = charting.net_flow_chart(
+                    q.cfd(cycle_data[cycle_data[backlog_column] >= (datetime.date.today() - datetime.timedelta(weeks=(args.charts_net_flow_window or 6)))]),
+                    start_column=committed_column,
+                    end_column=done_column
+                )
+            except charting.UnchartableData, e:
+                print "** WARNING: Did not draw chart:", e
+            else:
+                fig = ax.get_figure()
+                fig.savefig(args.charts_net_flow, bbox_inches='tight', dpi=300)
 
     print "Done"

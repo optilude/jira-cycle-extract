@@ -13,6 +13,10 @@ except ImportError:
 
 import datetime
 
+class UnchartableData(Exception):
+    """Thrown when data does not support the required chart
+    """
+
 def set_context(context="talk"):
     sns.set_context(context)
 
@@ -20,16 +24,18 @@ def set_style(style="darkgrid"):
     sns.set_style(style)
 
 def cycle_time_scatterplot(cycle_data, percentiles=[0.3, 0.5, 0.75, 0.85, 0.95], ax=None):
+    scatter_df = cycle_data[['key', 'summary', 'completed_timestamp', 'cycle_time']].dropna(subset=['cycle_time', 'completed_timestamp'])
+    ct_days = scatter_df['cycle_time'].dt.days
+
+    if len(ct_days.index) < 2:
+        raise UnchartableData("Need at least 2 completed items to draw scatterplot")
+
     if ax is None:
         fig, ax = plt.subplots()
     else:
         fig = ax.get_figure()
 
     fig.autofmt_xdate()
-
-    scatter_df = cycle_data[['key', 'summary', 'completed_timestamp', 'cycle_time']].dropna(subset=['cycle_time', 'completed_timestamp'])
-
-    ct_days = scatter_df['cycle_time'].dt.days
 
     ax.set_xlabel("Completed date")
     ax.set_ylabel("Cycle time (days)")
@@ -50,11 +56,14 @@ def cycle_time_scatterplot(cycle_data, percentiles=[0.3, 0.5, 0.75, 0.85, 0.95],
     return ax
 
 def cycle_time_histogram(cycle_data, bins=30, percentiles=[0.3, 0.5, 0.75, 0.85, 0.95], ax=None):
-    if ax is None:
-        fig, ax = plt.subplots()
-
     histogram_df = cycle_data[['cycle_time']].dropna(subset=['cycle_time'])
     ct_days = histogram_df['cycle_time'].dt.days
+
+    if len(ct_days.index) < 2:
+        raise UnchartableData("Need at least 2 completed items to draw histogram")
+
+    if ax is None:
+        fig, ax = plt.subplots()
 
     sns.distplot(ct_days, bins=bins, ax=ax, axlabel="Cycle time (days)")
 
@@ -75,7 +84,10 @@ def cycle_time_histogram(cycle_data, bins=30, percentiles=[0.3, 0.5, 0.75, 0.85,
 
     return ax
 
-def cfd(cfd_df, ax=None):
+def cfd(cfd_data, ax=None):
+    if len(cfd_data.index) == 0:
+        raise UnchartableData("Cannot draw CFD with no data")
+
     if ax is None:
         fig, ax = plt.subplots()
     else:
@@ -86,12 +98,15 @@ def cfd(cfd_df, ax=None):
     ax.set_xlabel("Date")
     ax.set_ylabel("Number of items")
 
-    cfd_df.plot.area(ax=ax, stacked=False, legend=False)
+    cfd_data.plot.area(ax=ax, stacked=False, legend=False)
     ax.legend(loc=0, title="", frameon=True)
 
     return ax
 
 def throughput_chart(throughput_data, ax=None):
+    if len(throughput_data.index) == 0:
+        raise UnchartableData("Cannot draw throughput chart with no completed items")
+
     if ax is None:
         fig, ax = plt.subplots()
     else:
@@ -107,6 +122,9 @@ def throughput_chart(throughput_data, ax=None):
     return ax
 
 def throughput_trend_chart(throughput_data, ax=None):
+    if len(throughput_data.index) == 0:
+        raise UnchartableData("Cannot draw throughput chart with no completed items")
+
     if ax is None:
         fig, ax = plt.subplots()
     else:
@@ -148,6 +166,9 @@ def throughput_trend_chart(throughput_data, ax=None):
     return ax
 
 def burnup(cfd_data, backlog_column=None, done_column=None, ax=None):
+    if len(cfd_data.index) == 0:
+        raise UnchartableData("Cannot draw burnup with no data")
+
     if ax is None:
         fig, ax = plt.subplots()
 
@@ -211,6 +232,12 @@ def burnup_forecast(
     target=None, backlog_column=None, done_column=None, percentiles=[0.5, 0.75, 0.85, 0.95],
     ax=None
 ):
+    if len(cfd_data.index) == 0:
+        raise UnchartableData("Cannot draw burnup forecast chart with no data")
+    if len(throughput_data.index) == 0:
+        raise UnchartableData("Cannot draw burnup forecast chart with no completed items")
+
+
     if backlog_column is None:
         backlog_column = cfd_data.columns[0]
 
@@ -276,6 +303,9 @@ def burnup_forecast(
     return ax
 
 def ageing_wip_chart(cycle_data, start_column, end_column, done_column=None, now=None, ax=None):
+    if len(cycle_data.index) == 0:
+        raise UnchartableData("Cannot draw ageing WIP chart with no data")
+
     if ax is None:
         fig, ax = plt.subplots()
 
@@ -325,6 +355,9 @@ def ageing_wip_chart(cycle_data, start_column, end_column, done_column=None, now
     return ax
 
 def wip_chart(cfd_data, frequency="1W-MON", start_column=None, end_column=None, ax=None):
+    if len(cfd_data.index) == 0:
+        raise UnchartableData("Cannot draw WIP chart with no data")
+
     if start_column is None:
         start_column = cfd_data.columns[1]
     if end_column is None:
@@ -347,6 +380,9 @@ def wip_chart(cfd_data, frequency="1W-MON", start_column=None, end_column=None, 
     return ax
 
 def net_flow_chart(cfd_data, frequency="1W-MON", start_column=None, end_column=None, ax=None):
+    if len(cfd_data.index) == 0:
+        raise UnchartableData("Cannot draw net flow chart with no data")
+
     if start_column is None:
         start_column = cfd_data.columns[1]
     if end_column is None:

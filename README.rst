@@ -35,7 +35,7 @@ If you get errors, try to install `numpy` and `pandas` separately first::
 This will install a binary called `jira-cycle-extract`. You can test that it was
 correctly installed using::
 
-    $ jira-cycle-extract -h
+    $ jira-cycle-extract --help
 
 If this doesn't work, check the output of `pip install jira-cycle-extract` to
 see where it may have installed the binary.
@@ -48,12 +48,6 @@ these with the `charting` extra:
 
 These dependencies are not installed by default because they can sometimes
 be a bit tricky to install.
-
-**Hint:** If you are on a Mac and you get an error about Python not being
-installed as a framework, try to create a file `~/.matplotlib/matplotlibrc`
-with the following contents:
-
-    backend : Agg
 
 Configuration
 -------------
@@ -228,17 +222,19 @@ your browser is unlikely to let you load anything not served from the same
 domain as the analytics web app itself.
 
 **Note:** When the `--format` is set, it applies to all files written, not
-just the main cyle data file (see other options below).
+just the main cyle data file (see other options below). It is important to be
+consistent with the file extensions. In particular, if you are using the `xlsx`
+format you should also make sure all output files use a `.xlsx` extension.
 
 Use the `-v` option to print more information during the extract process.
 
 Use the `-n` option to limit the number of items fetched from JIRA, based on
-the most recently updated issues. This is useful for testing the Configuration
+the most recently updated issues. This is useful for testing the configuration
 without waiting for long downloads::
 
     $ jira-cycle-extract -v -n 10 config.yaml data.csv
 
-To produce Cumulative Flow Diagram statistics, use the `--cfd` option::
+To produce **Cumulative Flow Diagram statistics**, use the `--cfd` option::
 
     $ jira-cycle-extract --cfd cfd.csv config.yaml data.csv
 
@@ -248,7 +244,7 @@ on that day. To plot a CFD, chart this data as a (non-stacked) area chart. You
 should technically exclude the series in the first column if it represents the
 backlog!
 
-To produce cycle time scatter plot statistics, use the `--scatterplot` option::
+To produce **cycle time scatter plot statistics**, use the `--scatterplot` option::
 
     $ jira-cycle-extract --scatterplot scatterplot.csv config.yaml data.csv
 
@@ -261,7 +257,7 @@ state. These two columns can be plotted as an X/Y scatter plot. Further columns
 contain the dates of entry into each workflow state and the various issue
 metadata to allow further filtering.
 
-To be able to easily draw a histogram of the cycle time values, use the
+To be able to easily draw a **histogram** of the cycle time values, use the
 `--histogram` option::
 
     $ jira-cycle-extract --histogram histogram.csv config.yaml data.csv
@@ -270,7 +266,7 @@ This will yield a `histogram.csv` file with two columns: bin ranges and the
 number of items with cycle times falling within each bin. These can be charted
 as a column or bar chart.
 
-To find out the 30th, 50th, 70th, 85th and 95th percentile cycle time values,
+To find out the 30th, 50th, 70th, 85th and 95th **percentile cycle time** values,
 pass the `--percentiles` option::
 
     $ jira-cycle-extract --percentiles percentiles.csv config.yaml data.csv
@@ -281,7 +277,8 @@ To calculate different percentiles use the `--quantiles` option:
 
 Note that there should not be spaces between the commas!
 
-To find out the daily throughput for the last 60 days, use the `--throughput` option:
+To find out the **daily throughput** for the last 60 days, use the
+`--throughput` option:
 
     $ jira-cycle-extract --throughput throughput.csv config.yaml data.csv
 
@@ -293,28 +290,34 @@ The various options can be used in combination, and it is technically OK to
 skip the second positional (`data.csv`) parameter (in which case the file will
 not be written).
 
-If you have charting dependencies installed, there are various options available
-to specify which charts to produce, for example:
+If you have charting dependencies installed (see above), there are various
+options available to allow you to draw **charts**, for example:
 
     $ jira-cycle-extract --charts-scatterplot=scatterplot.png config.yaml data.csv
 
 The available charts are:
 
-* `--charts-scatterplot` to draw a scatterplot of cycle times, with percentile lines
-* `--charts-histogram` to draw a histogram of cycle times, with percentile lines
-* `--charts-cfd` to draw a Cumulative Flow Diagram
-* `--charts-throughput` to draw a daily throughput bar chart
-* `--charts-burnup` to draw a simple burn-up chart (completed item count vs. time)
-* `--charts-burnup-forecast` to draw a burn-up chart with a Monte Carlo simulation
+* `--charts-scatterplot` to draw a **scatterplot** of cycle times, with percentile lines
+* `--charts-histogram` to draw a **histogram** of cycle times, with percentile lines
+* `--charts-cfd` to draw a **Cumulative Flow Diagram**
+* `--charts-throughput` to draw a daily **throughput bar chart**
+* `--charts-burnup` to draw a simple **burn-up** chart (completed item count vs. time)
+* `--charts-burnup-forecast` to draw a **burn-up chart with a Monte Carlo simulation**
   showing paths towards a completion target. The completion target will by default
   be the number of items in the backlog, but can be set explicitly with the
   `--charts-burnup-forecast-target` options. The simluation by default uses
   100 trials. The number of trials can be set with the
   `--charts-burnup-forecast-trials` option.
-* `--charts-wip` to draw a WIP boxplot showing min, max, median and mean WIP by week
-* `--charts-ageing-wip` to draw a sactter plot of current cycle time against
-  state in the cycle, i.e. how items are trending towards completion.
-* `--charts-net-flow` to show a bar chart of the weekly net flow: departures - arrivals.
+* `--charts-wip` to draw a **WIP boxplot** showing min, max, median and mean WIP
+  by week. By default, this will show the last 5 or 6 weeks' of data (depending
+  on the weekday). You can change this with the `--charts-wip-window` parameter,
+  set to a number of weeks.
+* `--charts-ageing-wip` to draw an **ageing WIP chart**: a scatter plot of current
+  cycle time against state in the cycle, i.e. how items are trending towards completion.
+* `--charts-net-flow` to show a bar chart of the **weekly net flow**:
+  departures - arrivals. By default, this will show the last 5 or 6 weeks' of
+  data (depending on the weekday). You can change this with the
+  `--charts-net-flow-window` parameter, set to a number of weeks.
 
 Troubleshooting
 ---------------
@@ -331,12 +334,80 @@ Troubleshooting
 * Old workflow states can still be part of an issue's history after a workflow
   has been modified. Use the `-v` option to find out about workflow states that
   haven't been mapped.
-* Excel sometimes picks funny formats for data in CSV files.
+* Excel sometimes picks funny formats for data in CSV files. Just set them to
+  whatever makes sense.
+* If you are on a Mac and you get an error about Python not being installed as
+  a framework, try to create a file `~/.matplotlib/matplotlibrc` with the
+  following contents::
+
+    backend : Agg
+* To install the charting dependencies on a Mac, you probably need to install a
+  `gfortran` compiler for `scipy`. Use Homebrew (http://brew.sh) and install the
+  `gcc` brew.
+
+Ad-hoc analysis
+---------------
+
+Sometimes, you may want to perform more exploratory, ad-hoc analysis of the
+cycle data. `jira-cycle-extract` uses Python Pandas (http://pandas.pydata.org)
+to do most of its heavy lifting, and Pandas provides a rich environment for
+data science.
+
+The Jupyter Notebook (http://jupyter.org) is a popular way to conduct
+interactive, ad-hoc analysis using Pandas (and more!).
+
+If you have this running, here's an example of a notebook that uses
+`jira-cycle-extract` to query JIRA with a given YAML file configuration and
+makes the data available for further analysis::
+
+    import getpass
+    import datetime
+
+    import pandas as pd
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    import seaborn as sns
+
+    from jira import JIRA
+    from jira_cycle_extract import cycletime, config
+
+    # Print charts in the notebook, using retina graphics
+    %matplotlib inline
+    %config InlineBackend.figure_format = 'retina'
+    sns.set_context("talk")
+
+    # Prompt for JIRA username, password and config file:
+    username = raw_input("Username:")
+    password = getpass.getpass("Password:")
+    config_filename = raw_input("Config file:")
+
+    # Parse options
+    options = {}
+    with open(config_filename) as config_file:
+        options = config.config_to_options(config_file.read())
+
+    # Connect to JIRA
+    jira = JIRA(options={'server': options['connection']['domain']}, basic_auth=(username, password))
+
+    # Fetch issues and calculate cycle data as a Pandas DataFrame
+    q = cycletime.CycleTimeQueries(jira, **options['settings'])
+    cycle_data = q.cycle_data(verbose=False)
+
+    # Calculate other DataFrames for CFD, scatterplot, histogram, percentile and throughput data
+    cfd_data = q.cfd(cycle_data)
+    scatter_data = q.scatterplot(cycle_data)
+    histogram_data = q.histogram(cycle_data)
+    percentile_data = q.percentiles(cycle_data, percentiles=quantiles)
+    daily_throughput_data = q.throughput_data(cycle_data[cycle_data])
+
+You can now do all kinds of analysis on the DataFrames (`cycle_data`, `cfd_data`
+and so on).
 
 Changelog
 ---------
 
-0.8 -
+0.8 - May 30 2016
     * Fixed a bug with calculating the CFD when statuses are skipped
     * Added --throughput output
     * Percentiles are now saved to file, not printed, when using --percentiles
