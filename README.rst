@@ -45,9 +45,15 @@ To use the built-in charting capabilities, you need to install Seaborn
 these with the `charting` extra:
 
     $ pip install jira-cycle-extract[charting]
-    
+
 These dependencies are not installed by default because they can sometimes
 be a bit tricky to install.
+
+**Hint:** If you are on a Mac and you get an error about Python not being
+installed as a framework, try to create a file `~/.matplotlib/matplotlibrc`
+with the following contents:
+
+    backend : Agg
 
 Configuration
 -------------
@@ -272,7 +278,7 @@ pass the `--percentiles` option::
 To calculate different percentiles use the `--quantiles` option:
 
     $ jira-cycle-extract --percentiles percentiles.csv --quantiles=0.3,0.5,0.8 config.yaml data.csv
-    
+
 Note that there should not be spaces between the commas!
 
 To find out the daily throughput for the last 60 days, use the `--throughput` option:
@@ -281,7 +287,7 @@ To find out the daily throughput for the last 60 days, use the `--throughput` op
 
 To use a different time window, e.g. the last 90 days:
 
-    $ jira-cycle-extract --throughput throughput.csv --throughput-window=90 config.yaml data.csv    
+    $ jira-cycle-extract --throughput throughput.csv --throughput-window=90 config.yaml data.csv
 
 The various options can be used in combination, and it is technically OK to
 skip the second positional (`data.csv`) parameter (in which case the file will
@@ -290,9 +296,25 @@ not be written).
 If you have charting dependencies installed, there are various options available
 to specify which charts to produce, for example:
 
-    $ jira-cycle-extract --charts-catterplot=scatterplot.png config.yaml data.csv
+    $ jira-cycle-extract --charts-scatterplot=scatterplot.png config.yaml data.csv
 
-See the output of `jira-cycle-extract --help` to learn the full range.
+The available charts are:
+
+* `--charts-scatterplot` to draw a scatterplot of cycle times, with percentile lines
+* `--charts-histogram` to draw a histogram of cycle times, with percentile lines
+* `--charts-cfd` to draw a Cumulative Flow Diagram
+* `--charts-throughput` to draw a daily throughput bar chart
+* `--charts-burnup` to draw a simple burn-up chart (completed item count vs. time)
+* `--charts-burnup-forecast` to draw a burn-up chart with a Monte Carlo simulation
+  showing paths towards a completion target. The completion target will by default
+  be the number of items in the backlog, but can be set explicitly with the
+  `--charts-burnup-forecast-target` options. The simluation by default uses
+  100 trials. The number of trials can be set with the
+  `--charts-burnup-forecast-trials` option.
+* `--charts-wip` to draw a WIP boxplot showing min, max, median and mean WIP by week
+* `--charts-ageing-wip` to draw a sactter plot of current cycle time against
+  state in the cycle, i.e. how items are trending towards completion.
+* `--charts-net-flow` to show a bar chart of the weekly net flow: departures - arrivals.
 
 Troubleshooting
 ---------------
@@ -316,6 +338,9 @@ Changelog
 
 0.8 -
     * Fixed a bug with calculating the CFD when statuses are skipped
+    * Added --throughput output
+    * Percentiles are now saved to file, not printed, when using --percentiles
+    * Adding charting output (with optional dependencies - see above)
 
 0.7 - January 22 2016
     * Add support for `--format=json`

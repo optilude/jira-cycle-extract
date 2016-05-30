@@ -10,7 +10,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='jira-cycle-extract',
-    version='0.7',
+    version='0.8',
     description='Extract cycle time analytics data from JIRA',
     long_description=long_description,
     author='Martin Aspeli',
@@ -22,13 +22,13 @@ setup(
     install_requires=[
         'jira',
         'PyYAML',
-        'pandas',
+        'pandas>=0.18',
         'numpy',
         'python-dateutil',
         'pydicti',
         'openpyxl',
     ],
-    
+
     extras_require={
         'charting': ['seaborn', 'matplotlib', 'statsmodels'],
     },

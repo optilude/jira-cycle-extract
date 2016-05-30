@@ -254,10 +254,10 @@ class CycleTimeQueries(QueryManager):
         completed at that timestamp (e.g. daily).
         """
         return cycle_data[['completed_timestamp', 'key']] \
-                        .groupby('completed_timestamp').count() \
-                        .resample(frequency).sum() \
-                        .fillna(0) \
-                        .rename(columns={'key': 'count'})
+            .rename(columns={'key': 'count'}) \
+            .groupby('completed_timestamp').count() \
+            .resample(frequency).sum() \
+            .fillna(0)
 
     def scatterplot(self, cycle_data):
         """Return scatterplot data for the cycle times in `cycle_data`. Returns
