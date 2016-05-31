@@ -42,7 +42,7 @@ see where it may have installed the binary.
 
 To use the built-in charting capabilities, you need to install Seaborn
 (which in turn installs Matplotlib and SciPy) and Statsmodels. You can get
-these with the `charting` extra:
+these with the `charting` extra::
 
     $ pip install jira-cycle-extract[charting]
 
@@ -217,17 +217,17 @@ This will extract a CSV file called `data.csv` with cycle data based on the
 configuration in `config.yaml`, in a format compatible with the
 ActionableAgile toolset.
 
-If you prefer Excel files for manual analysis:
+If you prefer Excel files for manual analysis::
 
     $ jira-cycle-extract --format=xlsx config.yaml data.xlsx
 
-If you prefer JSON:
+If you prefer JSON::
 
     $ jira-cycle-extract --format=json config.yaml data.json
 
 The JSON format can be loaded by the Actionable Agile Analytics tool if you
 self-host it and the single-page HTML file for the AAA tool and the JSON file
-are accessible from the same web server, via a URL parameter:
+are accessible from the same web server, via a URL parameter::
 
     http://myserver/analytics.html?url=data.json
 
@@ -285,18 +285,18 @@ pass the `--percentiles` option::
 
     $ jira-cycle-extract --percentiles percentiles.csv config.yaml data.csv
 
-To calculate different percentiles use the `--quantiles` option:
+To calculate different percentiles use the `--quantiles` option::
 
     $ jira-cycle-extract --percentiles percentiles.csv --quantiles=0.3,0.5,0.8 config.yaml data.csv
 
 Note that there should not be spaces between the commas!
 
 To find out the **daily throughput** for the last 60 days, use the
-`--throughput` option:
+`--throughput` option::
 
     $ jira-cycle-extract --throughput throughput.csv config.yaml data.csv
 
-To use a different time window, e.g. the last 90 days:
+To use a different time window, e.g. the last 90 days::
 
     $ jira-cycle-extract --throughput throughput.csv --throughput-window=90 config.yaml data.csv
 
@@ -305,7 +305,7 @@ skip the second positional (`data.csv`) parameter (in which case the file will
 not be written).
 
 If you have charting dependencies installed (see above), there are various
-options available to allow you to draw **charts**, for example:
+options available to allow you to draw **charts**, for example::
 
     $ jira-cycle-extract --charts-scatterplot=scatterplot.png config.yaml data.csv
 
