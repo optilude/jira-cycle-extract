@@ -49,6 +49,20 @@ these with the `charting` extra:
 These dependencies are not installed by default because they can sometimes
 be a bit tricky to install.
 
+Using Docker
+------------
+
+If you have Docker installed, you can run `jira-cycle-extract` as a docker image::
+
+    $ docker run --rm -it -v "$PWD":/data optilude/jira-cycle-extract:latest --help
+
+This will map the working directory (`/data`) of the containerised
+application to the current working directory (`$PWD`). Any files you
+specify on the command line (without any further path prefixes) will be
+read from or output to the current directory, e.g::
+
+    $ docker run --rm -it -v "$PWD":/data optilude/jira-cycle-extract:latest config.yml cycle.csv
+
 Configuration
 -------------
 
@@ -406,6 +420,9 @@ and so on).
 
 Changelog
 ---------
+
+0.9 - May 31 2016
+    * Add Docker documentation
 
 0.8 - May 30 2016
     * Fixed a bug with calculating the CFD when statuses are skipped
