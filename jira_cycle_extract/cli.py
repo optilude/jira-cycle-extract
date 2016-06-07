@@ -3,6 +3,8 @@ import getpass
 import json
 import datetime
 
+import dateutil.parser
+
 import numpy as np
 import pandas as pd
 
@@ -30,25 +32,41 @@ parser.add_argument('--committed-column', metavar='<name>', help="Name of the co
 parser.add_argument('--final-column', metavar='<name>', help="Name of the final 'work' column. Defaults to the penultimate column.")
 parser.add_argument('--done-column', metavar='<name>', help="Name of the 'done' column. Defaults to the last column.")
 parser.add_argument('--throughput-window', metavar='60', type=int, default=60, help="How many days in the past to use for calculating throughput")
+parser.add_argument('--throughput-window-end', metavar=datetime.date.today().isoformat(), help="By default, the throughput window runs to today's date. Use this option to set an alternative end date for the window.")
 
 if charting.HAVE_CHARTING:
 
     parser.add_argument('--charts-scatterplot', metavar='scatterplot.png', help="Draw cycle time scatter plot")
+    parser.add_argument('--charts-scatterplot-title', metavar='"Cycle time scatter plot"', help="Title for cycle time scatter plot")
+    
     parser.add_argument('--charts-histogram', metavar='histogram.png', help="Draw cycle time histogram")
+    parser.add_argument('--charts-histogram-title', metavar='"Cycle time histogram"', help="Title for cycle time histogram")
+    
     parser.add_argument('--charts-cfd', metavar='cfd.png', help="Draw Cumulative Flow Diagram")
+    parser.add_argument('--charts-cfd-title', metavar='"Cumulative Flow Diagram"', help="Title for CFD")
+    
     parser.add_argument('--charts-throughput', metavar='throughput.png', help="Draw weekly throughput chart with trend line")
+    parser.add_argument('--charts-throughput-title', metavar='"Throughput trend"', help="Title for throughput chart")
+    
     parser.add_argument('--charts-burnup', metavar='burnup.png', help="Draw simple burn-up chart")
+    parser.add_argument('--charts-burnup-title', metavar='"Burn-up"', help="Title for burn-up charts_scatterplot")
 
     parser.add_argument('--charts-burnup-forecast', metavar='burnup-forecast.png', help="Draw burn-up chart with Monte Carlo simulation forecast to completion")
+    parser.add_argument('--charts-burnup-forecast-title', metavar='"Burn-up forecast"', help="Title for burn-up forecast chart")
     parser.add_argument('--charts-burnup-forecast-target', metavar='<num stories>', type=int, help="Target completion scope for forecast. Defaults to current size of backlog.")
+    parser.add_argument('--charts-burnup-forecast-deadline', metavar=datetime.date.today().isoformat(), help="Deadline date for completion of backlog. If set, it will be shown on the chart, and the forecast delta will also be shown.")
+    parser.add_argument('--charts-burnup-forecast-deadline-confidence', metavar=.85, type=float, help="Quantile to use when comparing deadline to forecast.")
     parser.add_argument('--charts-burnup-forecast-trials', metavar='100', type=int, default=100, help="Number of iterations in Monte Carlo simulation.")
 
     parser.add_argument('--charts-wip', metavar='wip', help="Draw weekly WIP box plot")
+    parser.add_argument('--charts-wip-title', metavar='"Weekly WIP"', help="Title for WIP chart")
     parser.add_argument('--charts-wip-window', metavar='6', default=6, type=int, help="Number of weeks in the past for which to draw weekly WIP chart")
 
     parser.add_argument('--charts-ageing-wip', metavar='ageing-wip.png', help="Draw current ageing WIP chart")
+    parser.add_argument('--charts-ageing-wip-title', metavar='"Ageing WIP"', help="Title for ageing WIP chart")
 
     parser.add_argument('--charts-net-flow', metavar='net-flow.png', help="Draw weekly net flow bar chart")
+    parser.add_argument('--charts-net-flow-title', metavar='"Net flow"', help="Title for net flow bar chart`")
     parser.add_argument('--charts-net-flow-window', metavar='6', default=6, type=int, help="Number of weeks in the past for which to draw net flow chart")
 
 def get_jira_client(connection):
@@ -106,6 +124,9 @@ def main():
 
     output_format = args.format.lower() if args.format else 'csv'
 
+    throughput_window_end = dateutil.parser.parse(args.throughput_window_end) if args.throughput_window_end else datetime.date.today()
+    throughput_window_days = args.throughput_window
+
     # Query JIRA
 
     jira = get_jira_client(options['connection'])
@@ -121,7 +142,7 @@ def main():
     percentile_data = q.percentiles(cycle_data, percentiles=quantiles)
 
     daily_throughput_data = q.throughput_data(
-        cycle_data[cycle_data['completed_timestamp'] >= (datetime.date.today() - datetime.timedelta(days=args.throughput_window))],
+        cycle_data[cycle_data['completed_timestamp'] >= (throughput_window_end - datetime.timedelta(days=throughput_window_days))],
     )
 
     backlog_column = args.backlog_column or cfd_data.columns[0]
@@ -204,7 +225,7 @@ def main():
             print "Drawing scatterplot in", args.charts_scatterplot
             charting.set_style('darkgrid')
             try:
-                ax = charting.cycle_time_scatterplot(cycle_data, percentiles=quantiles)
+                ax = charting.cycle_time_scatterplot(cycle_data, percentiles=quantiles, title=args.charts_scatterplot_title)
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e
             else:
@@ -215,7 +236,7 @@ def main():
             print "Drawing histogram in", args.charts_histogram
             charting.set_style('darkgrid')
             try:
-                ax = charting.cycle_time_histogram(cycle_data, percentiles=quantiles)
+                ax = charting.cycle_time_histogram(cycle_data, percentiles=quantiles, title=args.charts_histogram_title)
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e
             else:
@@ -226,7 +247,7 @@ def main():
             print "Drawing CFD in", args.charts_cfd
             charting.set_style('whitegrid')
             try:
-                ax = charting.cfd(cfd_data)
+                ax = charting.cfd(cfd_data, title=args.charts_cfd_title)
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e
             else:
@@ -237,7 +258,7 @@ def main():
             print "Drawing throughput chart in", args.charts_throughput
             charting.set_style('darkgrid')
             try:
-                ax = charting.throughput_trend_chart(daily_throughput_data)
+                ax = charting.throughput_trend_chart(daily_throughput_data, title=args.charts_throughput_title)
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e
             else:
@@ -248,7 +269,7 @@ def main():
             print "Drawing burnup chart in", args.charts_burnup
             charting.set_style('whitegrid')
             try:
-                ax = charting.burnup(cfd_data, backlog_column=backlog_column, done_column=done_column)
+                ax = charting.burnup(cfd_data, backlog_column=backlog_column, done_column=done_column, title=args.charts_burnup_title)
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e
             else:
@@ -258,15 +279,22 @@ def main():
         if args.charts_burnup_forecast:
             target = args.charts_burnup_forecast_target or None
             trials = args.charts_burnup_forecast_trials or 100
-
+            deadline = dateutil.parser.parse(args.charts_burnup_forecast_deadline) if args.charts_burnup_forecast_deadline else None
+            deadline_confidence = args.charts_burnup_forecast_deadline_confidence
+            
             print "Drawing burnup foreacst chart in", args.charts_burnup_forecast
             charting.set_style('whitegrid')
             try:
                 ax = charting.burnup_forecast(
                     cfd_data, daily_throughput_data,
-                    trials=trials, target=target,
-                    backlog_column=backlog_column, done_column=done_column,
-                    percentiles=quantiles
+                    trials=trials,
+                    target=target,
+                    backlog_column=backlog_column,
+                    done_column=done_column,
+                    percentiles=quantiles,
+                    deadline=deadline,
+                    deadline_confidence=deadline_confidence,
+                    title=args.charts_burnup_forecast_title
                 )
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e
@@ -281,7 +309,8 @@ def main():
                 ax = charting.wip_chart(
                     q.cfd(cycle_data[cycle_data[backlog_column] >= (datetime.date.today() - datetime.timedelta(weeks=(args.charts_wip_window or 6)))]),
                     start_column=committed_column,
-                    end_column=final_column
+                    end_column=final_column,
+                    title=args.charts_wip_title
                 )
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e
@@ -293,7 +322,13 @@ def main():
             print "Drawing ageing WIP chart in", args.charts_ageing_wip
             charting.set_style('whitegrid')
             try:
-                ax = charting.ageing_wip_chart(cycle_data, start_column=committed_column, end_column=final_column, done_column=done_column)
+                ax = charting.ageing_wip_chart(
+                    cycle_data,
+                    start_column=committed_column,
+                    end_column=final_column,
+                    done_column=done_column,
+                    title=args.charts_ageing_wip_title
+                )
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e
             else:
@@ -307,7 +342,8 @@ def main():
                 ax = charting.net_flow_chart(
                     q.cfd(cycle_data[cycle_data[backlog_column] >= (datetime.date.today() - datetime.timedelta(weeks=(args.charts_net_flow_window or 6)))]),
                     start_column=committed_column,
-                    end_column=done_column
+                    end_column=done_column,
+                    title=args.charts_net_flow_title
                 )
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e

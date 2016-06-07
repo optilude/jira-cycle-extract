@@ -5,6 +5,7 @@ try:
     import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt
+    import matplotlib.transforms
 
     import statsmodels.formula.api as sm
 
@@ -23,7 +24,10 @@ def set_context(context="talk"):
 def set_style(style="darkgrid"):
     sns.set_style(style)
 
-def cycle_time_scatterplot(cycle_data, percentiles=[0.3, 0.5, 0.75, 0.85, 0.95], ax=None):
+def to_days_since_epoch(d):
+    return (d - datetime.datetime(1970, 1, 1)).days
+
+def cycle_time_scatterplot(cycle_data, percentiles=[0.3, 0.5, 0.75, 0.85, 0.95], title=None, ax=None):
     scatter_df = cycle_data[['key', 'summary', 'completed_timestamp', 'cycle_time']].dropna(subset=['cycle_time', 'completed_timestamp'])
     ct_days = scatter_df['cycle_time'].dt.days
 
@@ -40,6 +44,9 @@ def cycle_time_scatterplot(cycle_data, percentiles=[0.3, 0.5, 0.75, 0.85, 0.95],
     ax.set_xlabel("Completed date")
     ax.set_ylabel("Cycle time (days)")
 
+    if title is not None:
+        ax.set_title(title)
+
     ax.plot_date(x=scatter_df['completed_timestamp'], y=ct_days, ms=5)
 
     # Add percentiles
@@ -55,7 +62,7 @@ def cycle_time_scatterplot(cycle_data, percentiles=[0.3, 0.5, 0.75, 0.85, 0.95],
 
     return ax
 
-def cycle_time_histogram(cycle_data, bins=30, percentiles=[0.3, 0.5, 0.75, 0.85, 0.95], ax=None):
+def cycle_time_histogram(cycle_data, bins=30, percentiles=[0.3, 0.5, 0.75, 0.85, 0.95], title=None, ax=None):
     histogram_df = cycle_data[['cycle_time']].dropna(subset=['cycle_time'])
     ct_days = histogram_df['cycle_time'].dt.days
 
@@ -66,6 +73,9 @@ def cycle_time_histogram(cycle_data, bins=30, percentiles=[0.3, 0.5, 0.75, 0.85,
         fig, ax = plt.subplots()
 
     sns.distplot(ct_days, bins=bins, ax=ax, axlabel="Cycle time (days)")
+    
+    if title is not None:
+        ax.set_title(title)
 
     left, right = ax.get_xlim()
     ax.set_xlim(0, right)
@@ -84,7 +94,7 @@ def cycle_time_histogram(cycle_data, bins=30, percentiles=[0.3, 0.5, 0.75, 0.85,
 
     return ax
 
-def cfd(cfd_data, ax=None):
+def cfd(cfd_data, title=None, ax=None):
     if len(cfd_data.index) == 0:
         raise UnchartableData("Cannot draw CFD with no data")
 
@@ -92,6 +102,9 @@ def cfd(cfd_data, ax=None):
         fig, ax = plt.subplots()
     else:
         fig = ax.get_figure()
+
+    if title is not None:
+        ax.set_title(title)
 
     fig.autofmt_xdate()
 
@@ -103,7 +116,7 @@ def cfd(cfd_data, ax=None):
 
     return ax
 
-def throughput_chart(throughput_data, ax=None):
+def throughput_chart(throughput_data, title=None, ax=None):
     if len(throughput_data.index) == 0:
         raise UnchartableData("Cannot draw throughput chart with no completed items")
 
@@ -111,6 +124,9 @@ def throughput_chart(throughput_data, ax=None):
         fig, ax = plt.subplots()
     else:
         fig = ax.get_figure()
+
+    if title is not None:
+        ax.set_title(title)
 
     fig.autofmt_xdate()
 
@@ -121,7 +137,7 @@ def throughput_chart(throughput_data, ax=None):
 
     return ax
 
-def throughput_trend_chart(throughput_data, ax=None):
+def throughput_trend_chart(throughput_data, title=None, ax=None):
     if len(throughput_data.index) == 0:
         raise UnchartableData("Cannot draw throughput chart with no completed items")
 
@@ -129,6 +145,9 @@ def throughput_trend_chart(throughput_data, ax=None):
         fig, ax = plt.subplots()
     else:
         fig = ax.get_figure()
+        
+    if title is not None:
+        ax.set_title(title)
 
     fig.autofmt_xdate()
 
@@ -165,12 +184,15 @@ def throughput_trend_chart(throughput_data, ax=None):
 
     return ax
 
-def burnup(cfd_data, backlog_column=None, done_column=None, ax=None):
+def burnup(cfd_data, backlog_column=None, done_column=None, title=None, ax=None):
     if len(cfd_data.index) == 0:
         raise UnchartableData("Cannot draw burnup with no data")
 
     if ax is None:
         fig, ax = plt.subplots()
+
+    if title is not None:
+        ax.set_title(title)
 
     ax.set_xlabel("Date")
     ax.set_ylabel("Number of items")
@@ -230,13 +252,15 @@ def burnup_monte_carlo(start_value, target_value, start_date, throughput_data, t
 def burnup_forecast(
     cfd_data, throughput_data, trials=100,
     target=None, backlog_column=None, done_column=None, percentiles=[0.5, 0.75, 0.85, 0.95],
+    deadline=None, deadline_confidence=None,
+    title=None,
     ax=None
 ):
+
     if len(cfd_data.index) == 0:
         raise UnchartableData("Cannot draw burnup forecast chart with no data")
     if len(throughput_data.index) == 0:
         raise UnchartableData("Cannot draw burnup forecast chart with no completed items")
-
 
     if backlog_column is None:
         backlog_column = cfd_data.columns[0]
@@ -254,12 +278,18 @@ def burnup_forecast(
 
     fig.autofmt_xdate()
 
+    if title is not None:
+        ax.set_title(title)
+    
     ax.set_xlabel("Date")
     ax.set_ylabel("Number of items")
 
-    plot_data = cfd_data[[backlog_column, done_column]]
-    plot_data.plot.line(ax=ax, legend=True)
+    transform_vertical = matplotlib.transforms.blended_transform_factory(ax.transData, ax.transAxes)
+    transform_horizontal = matplotlib.transforms.blended_transform_factory(ax.transAxes, ax.transData)
 
+    plot_data = cfd_data[[backlog_column, done_column]]
+    plot_data.plot.line(ax=ax, legend=False)
+    
     mc_trials = burnup_monte_carlo(
         start_value=cfd_data[done_column].max(),
         target_value=target,
@@ -267,47 +297,117 @@ def burnup_forecast(
         throughput_data=throughput_data,
         trials=trials
     )
+    
+    deadline_confidence_date = None
 
     if mc_trials is not None:
 
         for col in mc_trials:
             mc_trials[col][mc_trials[col] > target] = target
 
-        mc_trials.plot.line(ax=ax, legend=False, color='r', linewidth=1)
+        mc_trials.plot.line(ax=ax, legend=False, color='#ff9696', linestyle='solid', linewidth=0.1)
 
         # percentiles at finish line
         finish_dates = mc_trials.apply(pd.Series.last_valid_index)
         finish_date_percentiles = finish_dates.quantile(percentiles).dt.normalize()
-
-        # workaround for mpld3 date serialization bug
-        to_days_since_epoch = lambda d: (d - datetime.datetime(1970, 1, 1)).days
+        
+        # percentile at deadline confidence interval
+        if deadline_confidence is not None:
+            deadline_confidence_quantiles = finish_dates.quantile([deadline_confidence]).dt.normalize()
+            if len(deadline_confidence_quantiles) > 0:
+                deadline_confidence_date = pd.Timestamp(deadline_confidence_quantiles.values[0]).to_pydatetime()
 
         bottom, top = ax.get_ylim()
         for percentile, value in finish_date_percentiles.iteritems():
 
-            ax.vlines(value, bottom, target, linestyles='--', linewidths=1)
+            ax.vlines(value, bottom, target, linestyles='--', linewidths=0.5)
             ax.annotate("%.0f%% (%s)" % ((percentile * 100), value.strftime("%d/%m/%Y"),),
-                xy=(to_days_since_epoch(value), (top - bottom) / 2),
-                xytext=(to_days_since_epoch(value), (top - bottom) / 2),
+                xy=(to_days_since_epoch(value), 0.35),
+                xycoords=transform_vertical,
                 rotation="vertical",
-                fontsize="x-small",
                 ha="left",
+                fontsize="x-small",
                 backgroundcolor="#ffffff"
             )
+    
+    if deadline is not None:
+        bottom, top = ax.get_ylim()
+        left, right = ax.get_xlim()
+        
+        deadline_dse = to_days_since_epoch(deadline)
 
+        ax.vlines(deadline, bottom, target, color='r', linestyles='-', linewidths=0.5)
+        ax.annotate("Due: %s" % (deadline.strftime("%d/%m/%Y"),),
+            xy=(deadline, target),
+            xytext=(0.95, 0.95),
+            textcoords='axes fraction',
+            arrowprops={
+                'arrowstyle': '->',
+                'color': 'r',
+                'linewidth': 1.1,
+                'connectionstyle': 'arc3,rad=.1',
+            },
+            fontsize="x-small",
+            ha="right",
+            color='red',
+            backgroundcolor="#ffffff"
+        )
+        
+        # Make sure we can see deadline line
+        if right < deadline_dse:
+            ax.set_xlim(left, deadline_dse + 1)
+        
+        # Draw deadline warning
+        if deadline_confidence_date is not None:
+            deadline_delta = (deadline - deadline_confidence_date).days
+            
+            ax.text(0.02, 0.8,
+                "Deadline: %s\nForecast (%.0f%%): %s\nDelta: %d days" % (
+                    deadline.strftime("%d/%m/%Y"),
+                    (deadline_confidence * 100),
+                    deadline_confidence_date.strftime("%d/%m/%Y"),
+                    deadline_delta
+                ),
+                transform=ax.transAxes,
+                fontsize=14,
+                verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='r' if deadline_delta < 0 else 'g', alpha=0.5),
+            )
+
+    # Place target line
     left, right = ax.get_xlim()
     ax.hlines(target, left, right, linestyles='--', linewidths=1)
+    ax.annotate("Target: %d" % (target,),
+        xy=(0.01, target),
+        xycoords=transform_horizontal,
+        fontsize="x-small",
+        ha="left",
+        va="center",
+        backgroundcolor="#ffffff"
+    )
+    
+    # Give some headroom above the target line so we can see it
+    bottom, top = ax.get_ylim()
+    ax.set_ylim(bottom, int(top*1.05))
 
-    ax.get_legend().set_frame_on(True)
+    # Place legend underneath graph
+    box = ax.get_position()
+    handles, labels = ax.get_legend_handles_labels()
+    ax.set_position([box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9])
+
+    ax.legend(handles[:2], labels[:2], loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=2)
 
     return ax
 
-def ageing_wip_chart(cycle_data, start_column, end_column, done_column=None, now=None, ax=None):
+def ageing_wip_chart(cycle_data, start_column, end_column, done_column=None, now=None, title=None, ax=None):
     if len(cycle_data.index) == 0:
         raise UnchartableData("Cannot draw ageing WIP chart with no data")
 
     if ax is None:
         fig, ax = plt.subplots()
+    
+    if title is not None:
+        ax.set_title(title)
 
     if now is None:
         now = pd.Timestamp.now()
@@ -354,7 +454,7 @@ def ageing_wip_chart(cycle_data, start_column, end_column, done_column=None, now
 
     return ax
 
-def wip_chart(cfd_data, frequency="1W-MON", start_column=None, end_column=None, ax=None):
+def wip_chart(cfd_data, frequency="1W-MON", start_column=None, end_column=None, title=None, ax=None):
     if len(cfd_data.index) == 0:
         raise UnchartableData("Cannot draw WIP chart with no data")
 
@@ -365,6 +465,9 @@ def wip_chart(cfd_data, frequency="1W-MON", start_column=None, end_column=None, 
 
     if ax is None:
         fig, ax = plt.subplots()
+
+    if title is not None:
+        ax.set_title(title)
 
     wip_data = pd.DataFrame({'wip': cfd_data[start_column] - cfd_data[end_column]})
 
@@ -379,7 +482,7 @@ def wip_chart(cfd_data, frequency="1W-MON", start_column=None, end_column=None, 
 
     return ax
 
-def net_flow_chart(cfd_data, frequency="1W-MON", start_column=None, end_column=None, ax=None):
+def net_flow_chart(cfd_data, frequency="1W-MON", start_column=None, end_column=None, title=None, ax=None):
     if len(cfd_data.index) == 0:
         raise UnchartableData("Cannot draw net flow chart with no data")
 
@@ -390,6 +493,9 @@ def net_flow_chart(cfd_data, frequency="1W-MON", start_column=None, end_column=N
 
     if ax is None:
         fig, ax = plt.subplots()
+    
+    if title is not None:
+        ax.set_title(title)
 
     weekly_data = cfd_data[[start_column, end_column]].resample(frequency, label='left').max()
     weekly_data['arrivals'] = weekly_data[start_column].diff()

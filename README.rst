@@ -421,6 +421,10 @@ and so on).
 Changelog
 ---------
 
+0.10 - June 7 2016
+    * Added title options for all charts
+    * Added deadline option for burnup forecast chart
+
 0.9 - May 31 2016
     * Add Docker documentation
 
