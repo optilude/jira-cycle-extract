@@ -326,6 +326,7 @@ def burnup_forecast(
                 xycoords=transform_vertical,
                 rotation="vertical",
                 ha="left",
+                va="top",
                 fontsize="x-small",
                 backgroundcolor="#ffffff"
             )
@@ -361,8 +362,8 @@ def burnup_forecast(
         if deadline_confidence_date is not None:
             deadline_delta = (deadline - deadline_confidence_date).days
             
-            ax.text(0.02, 0.8,
-                "Deadline: %s\nForecast (%.0f%%): %s\nDelta: %d days" % (
+            ax.text(0.02, 0.5,
+                "Deadline: %s\nForecast (%.0f%%): %s\nSlack: %d days" % (
                     deadline.strftime("%d/%m/%Y"),
                     (deadline_confidence * 100),
                     deadline_confidence_date.strftime("%d/%m/%Y"),
@@ -370,7 +371,7 @@ def burnup_forecast(
                 ),
                 transform=ax.transAxes,
                 fontsize=14,
-                verticalalignment='top',
+                verticalalignment='center',
                 bbox=dict(boxstyle='round', facecolor='r' if deadline_delta < 0 else 'g', alpha=0.5),
             )
 

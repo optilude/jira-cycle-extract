@@ -321,7 +321,11 @@ The available charts are:
   be the number of items in the backlog, but can be set explicitly with the
   `--charts-burnup-forecast-target` options. The simluation by default uses
   100 trials. The number of trials can be set with the
-  `--charts-burnup-forecast-trials` option.
+  `--charts-burnup-forecast-trials` option. You can set a deadline marker with the
+  `--charts-burnup-forecast-deadline` option, which should be set to a date. If
+  you also set `--charts-burnup-forecast-deadline-confidence` to a fraction (e.g.
+  `0.85`) it will be used to find a confidence interval in the simulation to which
+  the deadline will be compared.
 * `--charts-wip` to draw a **WIP boxplot** showing min, max, median and mean WIP
   by week. By default, this will show the last 5 or 6 weeks' of data (depending
   on the weekday). You can change this with the `--charts-wip-window` parameter,
