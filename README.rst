@@ -240,6 +240,10 @@ just the main cyle data file (see other options below). It is important to be
 consistent with the file extensions. In particular, if you are using the `xlsx`
 format you should also make sure all output files use a `.xlsx` extension.
 
+There are lots more options. See::
+
+    $ jira-cycle-extract --help
+
 Use the `-v` option to print more information during the extract process.
 
 Use the `-n` option to limit the number of items fetched from JIRA, based on
@@ -337,6 +341,13 @@ The available charts are:
   data (depending on the weekday). You can change this with the
   `--charts-net-flow-window` parameter, set to a number of weeks.
 
+Also note: all the `--charts-*` options have a corresponding `--charts-*-title`
+option that can be used to set a title for the chart.
+
+Finally, to limit the date range of the data shown in the charts, you can use the
+options `--charts-from` and `--charts-to` to specify a starting and/or ending 
+date (inclusive). Both are optional.
+
 Troubleshooting
 ---------------
 
@@ -425,7 +436,7 @@ and so on).
 Changelog
 ---------
 
-0.10 - June 7 2016
+0.10 - June 8 2016
     * Added title options for all charts
     * Added deadline option for burnup forecast chart
 
