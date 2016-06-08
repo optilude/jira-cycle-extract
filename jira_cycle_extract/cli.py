@@ -36,6 +36,9 @@ parser.add_argument('--throughput-window-end', metavar=datetime.date.today().iso
 
 if charting.HAVE_CHARTING:
 
+    parser.add_argument('--charts-from', metavar=(datetime.date.today() - datetime.timedelta(days=30)).isoformat(), help="Limit time window when drawing charts to start from this date")
+    parser.add_argument('--charts-to', metavar=datetime.date.today().isoformat(), help="Limit time window when drawing charts to end at this date")
+
     parser.add_argument('--charts-scatterplot', metavar='scatterplot.png', help="Draw cycle time scatter plot")
     parser.add_argument('--charts-scatterplot-title', metavar='"Cycle time scatter plot"', help="Title for cycle time scatter plot")
     
@@ -218,14 +221,29 @@ def main():
 
     # Output charts (if we have the right things installed)
     if charting.HAVE_CHARTING:
-
+    
+        charts_from = dateutil.parser.parse(args.charts_from) if args.charts_from is not None else None
+        charts_to = dateutil.parser.parse(args.charts_to) if args.charts_to is not None else None
+    
+        cycle_data_sliced = cycle_data
+        if charts_from is not None:
+            cycle_data_sliced = cycle_data[cycle_data['completed_timestamp'] >= charts_from]
+        if charts_to is not None:
+            cycle_data_sliced = cycle_data[cycle_data['completed_timestamp'] <= charts_to]
+        
+        cfd_data_sliced = cfd_data[slice(charts_from, charts_to)]
+        
         charting.set_context()
 
         if args.charts_scatterplot:
             print "Drawing scatterplot in", args.charts_scatterplot
             charting.set_style('darkgrid')
             try:
-                ax = charting.cycle_time_scatterplot(cycle_data, percentiles=quantiles, title=args.charts_scatterplot_title)
+                ax = charting.cycle_time_scatterplot(
+                    cycle_data_sliced,
+                    percentiles=quantiles,
+                    title=args.charts_scatterplot_title
+                )
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e
             else:
@@ -236,7 +254,11 @@ def main():
             print "Drawing histogram in", args.charts_histogram
             charting.set_style('darkgrid')
             try:
-                ax = charting.cycle_time_histogram(cycle_data, percentiles=quantiles, title=args.charts_histogram_title)
+                ax = charting.cycle_time_histogram(
+                    cycle_data_sliced,
+                    percentiles=quantiles,
+                    title=args.charts_histogram_title
+                )
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e
             else:
@@ -247,7 +269,10 @@ def main():
             print "Drawing CFD in", args.charts_cfd
             charting.set_style('whitegrid')
             try:
-                ax = charting.cfd(cfd_data, title=args.charts_cfd_title)
+                ax = charting.cfd(
+                    cfd_data_sliced,
+                    title=args.charts_cfd_title
+                )
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e
             else:
@@ -258,7 +283,10 @@ def main():
             print "Drawing throughput chart in", args.charts_throughput
             charting.set_style('darkgrid')
             try:
-                ax = charting.throughput_trend_chart(daily_throughput_data, title=args.charts_throughput_title)
+                ax = charting.throughput_trend_chart(
+                    daily_throughput_data,
+                    title=args.charts_throughput_title
+                )
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e
             else:
@@ -269,7 +297,12 @@ def main():
             print "Drawing burnup chart in", args.charts_burnup
             charting.set_style('whitegrid')
             try:
-                ax = charting.burnup(cfd_data, backlog_column=backlog_column, done_column=done_column, title=args.charts_burnup_title)
+                ax = charting.burnup(
+                    cfd_data_sliced,
+                    backlog_column=backlog_column,
+                    done_column=done_column,
+                    title=args.charts_burnup_title
+                )
             except charting.UnchartableData, e:
                 print "** WARNING: Did not draw chart:", e
             else:
@@ -286,7 +319,8 @@ def main():
             charting.set_style('whitegrid')
             try:
                 ax = charting.burnup_forecast(
-                    cfd_data, daily_throughput_data,
+                    cfd_data_sliced,
+                    daily_throughput_data,
                     trials=trials,
                     target=target,
                     backlog_column=backlog_column,
