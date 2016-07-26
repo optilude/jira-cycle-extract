@@ -229,7 +229,7 @@ def main():
         if charts_from is not None:
             cycle_data_sliced = cycle_data[cycle_data['completed_timestamp'] >= charts_from]
         if charts_to is not None:
-            cycle_data_sliced = cycle_data[cycle_data['completed_timestamp'] <= charts_to]
+            cycle_data_sliced = cycle_data_sliced[cycle_data_sliced['completed_timestamp'] <= charts_to]
         
         cfd_data_sliced = cfd_data[slice(charts_from, charts_to)]
         
