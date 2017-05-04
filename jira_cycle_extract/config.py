@@ -59,7 +59,8 @@ def config_to_options(data):
     if 'password' in config['connection']:
         options['connection']['password'] = config['connection']['password']
 
-    options['connection']['jira'] = config['connection']['jira']
+    if 'jira' in config['connection']:
+        options['connection']['jira'] = config['connection']['jira']
 
     # Parse Queries (list of Criteria) and/or a single Criteria
 
