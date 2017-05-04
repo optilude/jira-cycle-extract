@@ -76,6 +76,7 @@ def get_jira_client(connection):
     url = connection['domain']
     username = connection['username']
     password = connection['password']
+    jira_options = connection['jira']
 
     print "Connecting to", url
 
@@ -85,7 +86,10 @@ def get_jira_client(connection):
     if not password:
         password = getpass.getpass("Password: ")
 
-    return JIRA({'server': url}, basic_auth=(username, password))
+    options = {'server': url}
+    options.update(jira_options)
+
+    return JIRA(options, basic_auth=(username, password))
 
 def to_json_string(value):
     if isinstance(value, pd.Timestamp):

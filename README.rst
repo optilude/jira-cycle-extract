@@ -73,6 +73,7 @@ Write a YAML configuration file like so, calling it e.g. `config.yaml`::
         Domain: https://myserver.atlassian.net
         Username: myusername # If missing, you will be prompted at runtime
         Password: secret     # If missing, you will be prompted at runtime
+        Jira:                #List of key / value pairs that will be passed as options to jira as per https://jira.readthedocs.io/en/master/api.html#jira
 
     # What to search for?
     Criteria:
