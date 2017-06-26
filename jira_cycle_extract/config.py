@@ -32,7 +32,7 @@ def config_to_options(data):
             'domain': None,
             'username': None,
             'password': None,
-            'jira': {}
+            'jira-client-options': {}
         },
         'settings': {
             'queries': [],
@@ -59,8 +59,8 @@ def config_to_options(data):
     if 'password' in config['connection']:
         options['connection']['password'] = config['connection']['password']
 
-    if 'jira' in config['connection']:
-        options['connection']['jira'] = config['connection']['jira']
+    if 'jira-client-options' in config['connection']:
+        options['connection']['jira-client-options'] = config['connection']['jira-client-options']
 
     # Parse Queries (list of Criteria) and/or a single Criteria
 

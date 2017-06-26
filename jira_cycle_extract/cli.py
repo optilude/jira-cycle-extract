@@ -76,7 +76,7 @@ def get_jira_client(connection):
     url = connection['domain']
     username = connection['username']
     password = connection['password']
-    jira_options = connection['jira']
+    jira_client_options = connection['jira-client-options']
 
     print "Connecting to", url
 
@@ -87,7 +87,7 @@ def get_jira_client(connection):
         password = getpass.getpass("Password: ")
 
     options = {'server': url}
-    options.update(jira_options)
+    options.update(jira_client_options)
 
     return JIRA(options, basic_auth=(username, password))
 
