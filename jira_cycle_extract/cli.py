@@ -76,6 +76,7 @@ def get_jira_client(connection):
     url = connection['domain']
     username = connection['username']
     password = connection['password']
+    jira_client_options = connection['jira-client-options']
 
     print "Connecting to", url
 
@@ -85,7 +86,10 @@ def get_jira_client(connection):
     if not password:
         password = getpass.getpass("Password: ")
 
-    return JIRA({'server': url}, basic_auth=(username, password))
+    options = {'server': url}
+    options.update(jira_client_options)
+
+    return JIRA(options, basic_auth=(username, password))
 
 def to_json_string(value):
     if isinstance(value, pd.Timestamp):
@@ -315,7 +319,7 @@ def main():
             deadline = dateutil.parser.parse(args.charts_burnup_forecast_deadline) if args.charts_burnup_forecast_deadline else None
             deadline_confidence = args.charts_burnup_forecast_deadline_confidence
             
-            print "Drawing burnup foreacst chart in", args.charts_burnup_forecast
+            print "Drawing burnup forecast chart in", args.charts_burnup_forecast
             charting.set_style('whitegrid')
             try:
                 ax = charting.burnup_forecast(
