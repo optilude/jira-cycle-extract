@@ -1,7 +1,7 @@
 JIRA Cycle Data extract utility
 ===============================
 
-**NOTE:** Whilst this tool should remain functional, development has moved onto its leaner, meaner, and more powerful offsprint, `jira-agile-metrics`. See https://github.com/DeloitteDigitalUK/jira-agile-metrics
+**NOTE:** Whilst this tool should remain functional, development has moved onto its leaner, meaner, and more powerful offspring, `jira-agile-metrics`. See https://github.com/DeloitteDigitalUK/jira-agile-metrics
 
 This utility helps extract data from JIRA for processing with the
 ActionableAgile™ Analytics tool (https://www.actionableagile.com/analytics-tools/),
